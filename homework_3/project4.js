@@ -9,20 +9,20 @@ function GetModelViewProjection( projectionMatrix, translationX, translationY, t
 	let cosX = Math.cos(rotationX);
 	let sinX = Math.sin(rotationX);
 	let RotationMatrix_X = [
-		1,    0,     0, 0,
+		1, 0, 0, 0,
 		0, cosX, -sinX, 0,
-		0, sinX,  cosX, 0,
-		0,    0,     0, 1
+		0, sinX, cosX, 0,
+		0, 0, 0, 1
 	];
 
 	// Rotation around Y, column-major order
 	let cosY = Math.cos(rotationY);
 	let sinY = Math.sin(rotationY);
 	let RotationMatrix_Y = [
-	 cosY, 0, sinY, 0,
-	    0, 1,    0, 0,
-	-sinY, 0, cosY, 0,
-	    0, 0,    0, 1
+		cosY, 0, sinY, 0,
+		0, 1, 0, 0,
+		-sinY, 0, cosY, 0,
+		0, 0, 0, 1
 	];
 
 	// Translation, column-major order
@@ -118,7 +118,7 @@ class MeshDrawer
 
 		// Default state variables
 		this.swapYZBool = false;
-		this.showTextureBool = true;
+		this.showTextureBool = false;
 }
 	
 	// This method is called every time the user opens an OBJ file.
