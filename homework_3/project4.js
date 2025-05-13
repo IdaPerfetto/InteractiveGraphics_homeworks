@@ -118,7 +118,7 @@ class MeshDrawer
 
 		// Default state variables
 		this.swapYZBool = false;
-		this.showTextureBool = false;
+		this.showTextureBool = true;
 }
 	
 	// This method is called every time the user opens an OBJ file.
