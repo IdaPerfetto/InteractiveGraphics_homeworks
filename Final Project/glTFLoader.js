@@ -458,11 +458,12 @@ class GLTFParser {
       for (const anim of this.json.animations) {
         for (const sampler of anim.samplers) {
           const times = this.getAccessorData(sampler.input);                     // retrieves the times array of that sampler
-          // updatee the duration with the maximum between the current duration and the found duration
+          // update the duration with the maximum between the current duration and the found duration
           scene.animationDuration = Math.max(scene.animationDuration, times[times.length-1]);  // times[times.length-1] corresponds to the last time, i.e. the final time of the channel
         }
       }
     }
     return scene;
   }
+
 }
