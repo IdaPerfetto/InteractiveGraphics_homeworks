@@ -1,0 +1,169 @@
+<!--
+This file serves as the main entry point for the web application
+It defines the structure of the user interface (UI), including the WebGL canvas where the 3D scene is rendered and the control panel for user interaction
+It also includes the necessary CSS to style these elements and script tags to load the JavaScript modules that contain the application's logic
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bloomscape Controls</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: sans-serif;
+    background-color: #111;
+    color: #ffffff;
+  }
+
+  #controlPanel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 12px;
+    border-radius: 8px;
+    width: 240px;
+    font-size: 14px;
+  }
+
+  #controlPanel h3.main-title {
+    margin-top: 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: #22b322;
+    text-align: center;
+  }
+
+  #controlPanel .section-title {
+    margin-top: 15px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #9fdf9f;
+    text-align: center;
+  }
+
+  label {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  select {
+    width: 100%;
+    margin-top: 5px;
+    text-align: center;
+  }
+
+  input[type="range"] {
+    width: 80%;
+    margin-top: 5px;
+  }
+
+  input[type="number"], input[type="text"] {
+    width: 10%;
+    margin-top: 4px;
+  }
+
+
+  input[type="checkbox"] {
+    margin-right: 4px;
+  }
+
+  button {
+    margin-top: 8px;
+    width: 100%;
+    padding: 6px;
+    background: #2d862d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #36a836;
+  }
+
+  .info-display {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #444;
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+  }
+
+</style>
+</head>
+<body>
+
+<canvas id="glcanvas"></canvas>
+
+<div id="controlPanel">
+  <h3 class="main-title">Bloomscape Controls</h3>
+
+  <label for="presetSelect">Preset:</label>
+  <select id="presetSelect"></select>
+
+  <label>
+    Growth speed:
+    <input type="range" id="growthSpeed" min="0.0" max="5" value="1" step="0.5" oninput="this.nextElementSibling.value = this.value">
+    <output>1</output>
+  </label>
+
+  <label>
+    <input type="checkbox" id="autoCycle"> Auto day/night cycle
+  </label>
+
+  <label for="dayTimeSlider">Time of Day:
+    <input type="range" id="dayTimeSlider" min="0" max="1" value="0.0" step="0.001" oninput="this.nextElementSibling.value = this.value">
+    <output>0.0</output>
+  </label>
+
+  <h4 class="section-title">Editing</h4>
+
+  <label>
+    Angle between branches: 
+    <input type="range" id="angle" min="0" max="90" value="25" step="1" oninput="this.nextElementSibling.value = this.value">
+    <output>25</output>
+  </label>
+
+  <label>
+    Iterations:
+    <input type="number" id="iterations" min="0" max="7" value="4">
+  </label>
+
+  <h4 class="section-title">Weather</h4>
+  <label>
+    <input type="checkbox" id="sunRaysCheckbox"> Sun Rays
+  </label>
+
+  <label>
+    <input type="checkbox" id="rainCheckbox"> Rain
+  </label>
+
+  <label>
+    <input type="checkbox" id="cloudsCheckbox"> Clouds
+  </label>
+
+  <button id ="waterBtn">Water Plant</button>
+
+  <hr>
+
+  <button id="regenerateBtn">Regenerate</button>
+
+  <hr>
+  <div class="info-display">
+    <span>Objects in the scene: <span id="objCount">0</span></span>
+    <span>FPS: <span id="fps">0</span></span>
+</div>
+
+<script src="glTFLoader.js"></script>
+<script src="bloomscape.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
