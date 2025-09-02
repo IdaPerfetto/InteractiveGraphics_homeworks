@@ -341,7 +341,7 @@ class OrbitCamera {
       }
       else if (this.isPanning) {
         // calculate the camera's local axes (right and up)
-        const eye = this.getEyePosition();  // calls function getEyePosition (see line 322) to obtain the position of th camera
+        const eye = this.getEyePosition();  // calls function getEyePosition (see line 382) to obtain the position of th camera
         const [ex, ey, ez] = eye;
         const [cx, cy, cz] = this.target;
         // Forward Vector (from camera to target)
@@ -389,7 +389,7 @@ class OrbitCamera {
 
   // View Matrix
   getViewMatrix(out) {
-    const eye = this.getEyePosition(); // calls the getEyePosition function (see line 322) to obtain the position of th camera
+    const eye = this.getEyePosition(); // calls the getEyePosition function (see line 382) to obtain the position of th camera
     // Cartesian position of the camera (eye) calculated with respect to the target
     Mat4.lookAt(out, eye, this.target, [0,1,0]);  // calls the lookAt function (see line 200) to obtain the View Matrix
     return out;
@@ -1216,7 +1216,7 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
   let cloudMeshHandle = null;                                            // clouds geometry
 
   // Flowers parameters: modify if the number of flowers slows the page down
-  const PERF = {
+  const PERF = {                 // performance settings object
     maxFlowers: 20,              // absolute cap on flowers
     flowerSpawnProbability: 1    // probability of accepting a generated flower
   };
@@ -1271,12 +1271,12 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
     config.environment.wasWateredToday = false;                          // resets the daily watering status
     window._lastFrameTime = undefined;                                   // resets the global frame timer
   
-    buildLSystem();                                                      // calls the buildLSystem function (see line 1873) to start building the new plant structure
+    buildLSystem();                                                      // calls the buildLSystem function (see line 1881) to start building the new plant structure
   };
 
   // Callback for changing the preset
   ui.onPresetChange = () => {
-      buildLSystem();                                                    // calls the buildLSystem function (see line 1873) to build a plant with the new preset
+      buildLSystem();                                                    // calls the buildLSystem function (see line 1881) to build a plant with the new preset
   };
 
   ui.onWater = () => {
@@ -1326,6 +1326,7 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
 
   // Geometry of a cylinder (for the branches)
   function createCylinder(radius, height, segments) {
+    // segments: determines the roundness
     // initialize the empty arrays that will hold the geometry data
     const positions = [];                         // array for vertex coordinates
     const normals = [];                           // array for normals
@@ -1385,7 +1386,7 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
     return { positions, normals, indices };
   }
 
-  // Geometry of a plane (for the ground)
+  // Geometry of a plane (for the ground and the clouds)
   function createPlane(width, depth) {
     const w = width / 2;                                                  // calculates half the width for centering
     const d = depth / 2;                                                  // calculates half the depth for centering
@@ -1397,6 +1398,8 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
 
   // Geometry of a sphere (for sun and moon)
   function createSphere(radius, latitudeBands, longitudeBands) {
+    // radius: size of the sphere
+    // latitudeBands/longitudeBands: number of subdivisions for detail
     const positions = [];                                                 // array for vertex positions
     const normals = [];                                                   // array for vertex normals
     const indices = [];                                                   // array for vertex indices
@@ -1444,51 +1447,54 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
 
   // Fullscreen triangle in clip-space (z=0), compatibile con MeshDrawer
   function createFullscreenTriangleGeo() {
-    return {
-      positions: new Float32Array([
-        -1, -1, 0,
-         3, -1, 0,
-        -1,  3, 0
+    return {                                                                  // returns a geometry object
+      positions: new Float32Array([                                           // defines the vertex positions as a Float32Array
+        -1, -1,  0,                                                           // bottom-left vertex
+         3, -1,  0,                                                           // far-right vertex
+        -1,  3,  0                                                            // far-top vertex
       ]),
-      normals: new Float32Array([
+      normals: new Float32Array([                                             // defines the vertex normals as a Float32Array
          0, 0, 1,
          0, 0, 1,
-         0, 0, 1
+         0, 0, 1 
       ]),
-      indices: new Uint16Array([0,1,2])
+      indices: new Uint16Array([0,1,2])                                      // defines the single triangle connecting the vertices
     };
   }
 
   function createParticleCloud(count, boxSize, minY) {
-    const positions = [];
-    const halfBox = boxSize / 2;
-    for (let i = 0; i < count; i++) {
-      const x = Math.random() * boxSize - halfBox;
-      let y = Math.random() * boxSize - halfBox;
-      if (minY) {
-        if (y < minY) y = minY + Math.random() * 4.0;
+    // count: number of particles to generate
+    // boxSize: side length of the cube in which to distribute the particles
+    // minY: minimum Y-level for the particles
+    const positions = [];                                         // array for particle positions
+    const halfBox = boxSize / 2;                                  // calculates half the box size for centering
+    for (let i = 0; i < count; i++) {                             // loops to create the specified number of particles
+      const x = Math.random() * boxSize - halfBox;                // generates a random x coordinate scaled by boxSize and shifted by halfBox to be within the desired range
+      let y = Math.random() * boxSize - halfBox;                  // generates a random y coordinate within the box
+      if (minY) {                                                 // checks if a minimum y-level was provided
+        if (y < minY) y = minY + Math.random() * 4.0;             // recalculates y if it's below the minimum, adding a small random offset
       }
-      const z = Math.random() * boxSize - halfBox;
-      positions.push(x, y, z);
+      const z = Math.random() * boxSize - halfBox;                // generates a random z coordinate within the box
+      positions.push(x, y, z);                                    // adds the new particle's coordinates to the positions array
     }
-    return { positions };
+    return { positions };                                         // returns the geometry data containing only the positions
   }
 
-  // Funzione per creare una texture WebGL da un Blob di immagine
+  // Function to create a WebGL texture from an image Blob
   async function glTFImageToTexture(gl, imageBlob) {
-    if (!imageBlob) return null;
-      const texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
+    if (!imageBlob) return null;                                 // returns null if the image blob is not provided
+      const texture = gl.createTexture();                        // creates a new WebGL texture object
+      gl.bindTexture(gl.TEXTURE_2D, texture);                    // binds the new texture to the 2D texture target
 
     try {
-      const imageBitmap = await createImageBitmap(imageBlob);       // funzione integrata nel browser
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageBitmap);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.generateMipmap(gl.TEXTURE_2D);
-      console.log("Texture created successfully from GLB data.");
+      const imageBitmap = await createImageBitmap(imageBlob);    // asynchronously creates an image bitmap from the blob (built-in browser function)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageBitmap);     // uploads the image bitmap data to the GPU texture
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);                 // sets the texture wrapping for the S (U) coordinate to clamp to the edge
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);                 // sets the texture wrapping for the T (V) coordinate to clamp to the edge
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);      // sets the minification filter to use linear interpolation on mipmaps
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);                    // sets the magnification filter to use linear interpolation
+      gl.generateMipmap(gl.TEXTURE_2D);                                                     // generates a set of mipmaps for the texture
+      console.log("Texture created successfully from GLB data");
     } 
     catch (e) {
       console.error("Error creating texture:", e);
@@ -1496,69 +1502,71 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
       return null;
     }
   
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    return texture;
+    gl.bindTexture(gl.TEXTURE_2D, null);                    // unbinds the texture from the target for cleanup
+    return texture;                                         // returns the fully configured WebGL texture object
   }
 
-  // Inizializzazione di tutte le geometrie di base
+  // initialization of all base geometries
   async function initBaseGeometries() {
-    const loader = new GLTFLoader();
-    // Inizializza il ramo, se non già fatto
-    if (!defaultBranchMeshHandle) {  // se l'handle non è stato ancora creato
-      const defaultBranch = createCylinder(0.05, 1.0, 8);  // crea i dati della geometria del ramo base con raggio 0.05, altezza 1.0, 8 segmenti
-      defaultBranchMeshHandle = meshDrawer.createMesh(defaultBranch);  // chiama createMesh (riga 326) per caricare i dati sulla GPU e salva l'handle di riferimento nella variabile globale
+    const loader = new GLTFLoader();                       // creates a new instance of the GLTF loader
+    
+    // Initialize the branch, if not already done
+    if (!defaultBranchMeshHandle) {
+      const defaultBranch = createCylinder(0.05, 1.0, 8);               // calls createCylinder (see line 1328) with radius 0.05, height 1.0, 8 segments
+      defaultBranchMeshHandle = meshDrawer.createMesh(defaultBranch);   // calls createMesh (see line 1026) to upload the data to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza sole/luna, se non già fatto
+    // Initialize sun/moon, if not already done
     if (!sunMoonMeshHandle) {
-      const sphere = createSphere(0.5, 16, 16);
-      sunMoonMeshHandle = sunMoonDrawer.createMesh(sphere);
+      const sphere = createSphere(0.5, 16, 16);                          // calls createSphere (see line 1400) creates the sphere geometry with radius 0.5, latitudeBands/longitudeBands 16
+      sunMoonMeshHandle = sunMoonDrawer.createMesh(sphere);              // calls createMesh (see line 1026) to upload the data to the GPU and saves the handle in the global variable
     }
+
+    // Initialize sunrays, if not already done
     if (!sunRaysMeshHandle) {
-    // un quad grande (billboard)
-      const rayGeo = createFullscreenTriangleGeo();
-      sunRaysMeshHandle = sunRaysDrawer.createMesh(rayGeo);
+      const rayGeo = createFullscreenTriangleGeo();                      // calls createFullscreenTriangleGeo (see line 1449) to create the geometry for the sun rays
+      sunRaysMeshHandle = sunRaysDrawer.createMesh(rayGeo);              // calls createMesh (see line 1026) to upload the mesh data to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza le lucciole, se non già fatto
+    // Initialize fireflies, if not already done
     if (!fireflyMeshHandle) {
-      const minY = config.environment.plantBaseY
-      const fireflyGeo = createParticleCloud(50, 60, minY);            // 50 lucciole su tutta la geometria del terreno
-      fireflyMeshHandle = fireflyDrawer.createMesh(fireflyGeo);        // createMesh ora funziona anche senza indici
+      const minY = config.environment.plantBaseY                         // sets the minimum y coordinate for the fireflies
+      const fireflyGeo = createParticleCloud(50, 60, minY);              // calls createParticleCloud (see line 1465) to generate 50 fireflies across the entire ground geometry
+      fireflyMeshHandle = fireflyDrawer.createMesh(fireflyGeo);          // calls createMesh (see line 944) to upload the mesh ata to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza le stelle, se non già fatto
+    // Initializes stars, if not already done
     if (!starMeshHandle) {
-      const minY = null
-      const starGeo = createParticleCloud(10000, 400, minY);            // 4000 stelle in un box enorme
-      starMeshHandle = starDrawer.createMesh(starGeo);
+      const minY = null                                                  // stars have no minimum y coordinate
+      const starGeo = createParticleCloud(10000, 400, minY);             // calls createParticleCloud (see line 1465) to generate 10000 stars in a huge box
+      starMeshHandle = starDrawer.createMesh(starGeo);                   // calls createMesh (see line 944) to upload the mesh data to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza la pioggia, se non già fatto
+    // Initializes rain, if not already done
     if (!rainMeshHandle) {
-      const rainGeo = createParticleCloud(1500, 50); // 1500 gocce in un box di 30x30x30
-      rainMeshHandle = rainDrawer.createMesh(rainGeo);
+      const rainGeo = createParticleCloud(1500, 50);                    // calls createParticleCloud (see line 1465) to generate 500 raindrops in a 50x50x50 box
+      rainMeshHandle = rainDrawer.createMesh(rainGeo);                  // calls createMesh (see line 944) to upload the mesh data to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza le nuvole, se non già fatto
+    // Initializes clouds, if not already done
     if (!cloudMeshHandle) {
-      const cloudGeo = createPlane(400, 400);
-      cloudMeshHandle = cloudDrawer.createMesh(cloudGeo);
+      const cloudGeo = createPlane(400, 400);                           // calls createPlane (see line 1390) to create a large plane for the clouds
+      cloudMeshHandle = cloudDrawer.createMesh(cloudGeo);               // calls createMesh (see line 944) to upload the mesh data to the GPU and saves the handle in the global variable
     }
 
-    // Inizializza le foglie, se non già fatto, caricando il file .glb
+    // Initializes leaves, if not already done, by loading the .glb file
     if (leafParts.length === 0) {
       console.log("Loading leaf model...");
       try {
-        const gltf = await loader.load('./Leaf.glb');
-        for (const meshPart of gltf.meshes) {
-          const textureHandle = await glTFImageToTexture(gl, meshPart.material.image);
-          leafParts.push({
-            handle: texturedDrawer.createMesh(meshPart),
-            drawer: texturedDrawer,
-            texture: textureHandle,
-            material: leafMaterial,
-            localMatrix: meshPart.worldMatrix
+        const gltf = await loader.load('./Leaf.glb');                   // asynchronously loads the Leaf.glb file
+        for (const meshPart of gltf.meshes) {                           // iterates through each mesh part in the loaded gltf file
+          const textureHandle = await glTFImageToTexture(gl, meshPart.material.image); // calls glTFImageToTexture (see line 1484) to create a WebGL texture from the mesh's image data
+          leafParts.push({                                              // adds a new leaf part object to the leafParts array
+            handle: texturedDrawer.createMesh(meshPart),                // calls createMesh (see line 1026) to upload the mesh data to the GPU and stores its handle
+            drawer: texturedDrawer,                                     // assigns the textured drawer for rendering
+            texture: textureHandle,                                     // stores the texture handle
+            material: leafMaterial,                                     // assigns the predefined leaf material
+            localMatrix: meshPart.worldMatrix                           // stores the local transformation matrix of the mesh part
           });
         }
       }
@@ -1567,28 +1575,28 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
       }
     }
 
-    // Inizializza i fiori, se non già fatto, caricando il file .glb (asincrono)
+    // Initializes flowers, if not already done, by loading the .glb file (asynchronously)
     if (flowerParts.length === 0) {
       console.log("Loading flower model...");
       try {
-        const gltf = await loader.load('./Flower.glb');
-        flowerGLTF = gltf;
-        for (const meshPart of gltf.meshes) {
-          const hasTexture = meshPart.material && meshPart.material.image;
-          let drawer = hasTexture ? texturedDrawer : meshDrawer;
-          const handle = drawer.createMesh(meshPart);
-          const textureHandle = hasTexture ? await glTFImageToTexture(gl, meshPart.material.image) : null;
+        const gltf = await loader.load('./Flower.glb');                 // asynchronously loads the Flower.glb file
+        flowerGLTF = gltf;                                              // stores the loaded gltf data globally
+        for (const meshPart of gltf.meshes) {                           // iterates through each mesh part in the loaded gltf file
+          const hasTexture = meshPart.material && meshPart.material.image;   // checks if the mesh part has a texture
+          let drawer = hasTexture ? texturedDrawer : meshDrawer;             // selects the appropriate drawer based on texture presence
+          const handle = drawer.createMesh(meshPart);                        // calls createMesh (see line 1026) to upload the mesh data to the GPU and stores its handle
+          const textureHandle = hasTexture ? await glTFImageToTexture(gl, meshPart.material.image) : null;   // creates a texture if available
       
-          flowerParts.push({
-            handle: handle,
-            drawer: drawer,
-            texture: textureHandle,
-            material: meshPart.material,
-            localMatrix: meshPart.worldMatrix,
-            nodeIndex: meshPart.nodeIndex 
+          flowerParts.push({                                           // adds a new flower part object to the flowerParts array
+            handle: handle,                                            // stores the mesh handle
+            drawer: drawer,                                            // stores the assigned drawer
+            texture: textureHandle,                                    // stores the texture handle
+            material: meshPart.material,                               // stores the material data from the gltf
+            localMatrix: meshPart.worldMatrix,                         // stores the local transformation matrix
+            nodeIndex: meshPart.nodeIndex                              // stores the node index for animation
           });
         }
-        console.log(`Flower model loaded successfully with ${flowerParts.length} parts, animation ready.`);
+        console.log(`Flower model loaded successfully with ${flowerParts.length} parts, animation ready`);
       }
       catch (e) {
         console.error("Failed to load Red Flower Animated.glb:", e);
@@ -1596,60 +1604,56 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
     }
   }
   
-  // Aggiunta di un nuovo ramo alla scena
-  // Aggiunta di un nuovo ramo alla scena
+    // adds a new part to the scene
   function addPlantPart(objDesc, calculatedMatrix) {
 
-    // --- PERF: cap & thinning fiori (se già presenti nella tua versione, lasciali pure qui) ---
     if (objDesc.type === 'flower') {
-      if (typeof PERF !== 'undefined') {
-        if (typeof flowerCount === 'number') {
-          if (flowerCount >= (PERF.maxFlowers ?? Infinity)) return;
-          if (Math.random() > (PERF.flowerSpawnProbability ?? 1)) return;
+      if (typeof PERF !== 'undefined') {            // checks if the performance settings object is defined
+        if (typeof flowerCount === 'number') {      // checks if the flower counter is a number
+          if (flowerCount >= (PERF.maxFlowers ?? Infinity)) return;          // returns if the maximum number of flowers has been reached
+          if (Math.random() > (PERF.flowerSpawnProbability ?? 1)) return;    // returns based on the spawn probability
           flowerCount++;
-          console.log(`Currently ${flowerCount} flowers in the scene.`);
+          console.log(`Currently ${flowerCount} flowers in the scene`);      // debug print
         }
       }
     }
 
-    // ---------- FIORI ----------
-    // Pushiamo UN SOLO oggetto placeholder con meshParts = flowerParts
-    // ---------- FIORI ----------
+    // Flowers
     if (objDesc.type === 'flower') {
-      if (!Array.isArray(flowerParts) || flowerParts.length === 0) return;
+      if (!Array.isArray(flowerParts) || flowerParts.length === 0) return;   // returns if the flower parts asset is not ready
     
-      sceneObjects.push({
-        meshHandle: null,                 // non usato: si disegna per-part a runtime
-        modelMatrix: calculatedMatrix,
-        color: [1, 1, 1],
-        birthTime: performance.now(),
-        description: objDesc,
-        drawer: null,
-        texture: null,
-        material: null,
-        meshParts: flowerParts,           // pacchetto parti del fiore
+      sceneObjects.push({                                                    // adds a new flower object to the scene
+        meshHandle: null,                                                    // not used: drawn per-part at runtime
+        modelMatrix: calculatedMatrix,                                       // the base transformation for the entire flower
+        color: [1, 1, 1],                                                    // a neutral color as parts have their own materials
+        birthTime: performance.now(),                                        // sets the creation timestamp
+        description: objDesc,                                                // stores the original L-System description
+        drawer: null,                                                        // not used directly
+        texture: null,                                                       // not used directly
+        material: null,                                                      // not used directly
+        meshParts: flowerParts,                                              // packet of all flower parts
     
-        // Stato animazione (sincronizzato per tutti i fiori)
-        animPhase: "closed",              // "closed" | "opening" | "open" | "closing"
-        animTime: 0,                      // [0..animLen]
-        _startReady: false,               // diventa true quando supera baseStart
-        _lastIsDay: null                  // ultimo stato giorno/notte visto
+        // Animation state (synchronized for all flowers)
+        animPhase: "closed",                                                 // "closed" , "opening", "open" , "closing"
+        animTime: 0,                                                         // [0...animLen]
+        _startReady: false,                                                  // becomes true after the baseStart delay
+        _lastIsDay: null                                                     // last seen day/night state
       });
     
-      return; // IMPORTANTISSIMO: non aggiungere altro per i fiori
+      return;
     }
 
-    // ---------- FOGLIE / RAMI ----------
+    // Branches and Leaves
     let partsToAdd = [];
-    let baseColor = objDesc.color;
+    let baseColor = objDesc.color;                                           // gets the base color from the description
 
     switch (objDesc.type) {
       case 'leaf':
-        partsToAdd = leafParts;          // parti già pronte dal glb della foglia
+        partsToAdd = leafParts;                                              // parts are already loaded from the leaf glb
         break;
       case 'branch':
       default:
-        partsToAdd.push({
+        partsToAdd.push({                                                    // adds a single default part for branches
           handle: defaultBranchMeshHandle,
           drawer: meshDrawer,
           texture: null,
@@ -1659,16 +1663,16 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
         break;
     }
 
-    if (partsToAdd.length === 0 || !partsToAdd[0].handle) return;
+    if (partsToAdd.length === 0 || !partsToAdd[0].handle) return;           // returns if no valid parts are ready
 
     for (const part of partsToAdd) {
-      const finalPartMatrix = Mat4.multiply(Mat4.identity(), calculatedMatrix, part.localMatrix);
-      const finalColor = baseColor
+      const finalPartMatrix = Mat4.multiply(Mat4.identity(), calculatedMatrix, part.localMatrix);    // combines the base matrix with the part's local matrix
+      const finalColor = baseColor                                                                   // determines the final color
         || (part.material && part.material.baseColorFactor
-              ? part.material.baseColorFactor.slice(0, 3)
-              : [0.29, 0.61, 0.02]);
+              ? part.material.baseColorFactor.slice(0, 3)                                            // slice(0, 3) takes only the first 3 components (R, G, B) and discards any alpha
+              : [0.29, 0.61, 0.02]);                                                                 // fallback color if none is defined
 
-      sceneObjects.push({
+      sceneObjects.push({                                                                            // adds the final object to the scene
         meshHandle: part.handle,
         modelMatrix: finalPartMatrix,
         color: finalColor,
@@ -1677,233 +1681,235 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
         drawer: part.drawer,
         texture: part.texture,
         material: part.material,
-        meshParts: null                   // rami/foglie NON hanno pacchetto di parti
+        meshParts: null                                                                              // branches/leaves do NOT have a packet of parts
       });
     }
   }
 
-
   function expandLSystem(axiom, rules, iterations) {
-    let currentString = axiom;
-    const moduleRegex = /([A-Z])(?:\(([^)]*)\))?/g;
+    let currentString = axiom;                                                      // initializes the current string with the axiom, it will be updated in each iteration
+    // Regex to find modules: 
+    // it looks for an uppercase letter ([A-Z]), optionally followed by parentheses containing parameters
+    const moduleRegex = /([A-Z])(?:\(([^)]*)\))?/g;                                 // the g flag ensures it finds all matches, not just the first one
 
     for (let i = 0; i < iterations; i++) {
-        let nextString = "";
-        let lastIndex = 0;
+      let nextString = "";                                                          // initializes an empty string for the next iteration's result
+      let lastIndex = 0;                                                            // keeps track of the end of the last processed match
 
-        for (const match of currentString.matchAll(moduleRegex)) {
-            // Aggiunge tutti i simboli non-modulo ([, +, ', etc.) che ci sono tra l'ultimo match e questo
-            nextString += currentString.substring(lastIndex, match.index);
+      for (const match of currentString.matchAll(moduleRegex)) {                    // iterates over all modules found in the current string
+        // adds all non-module symbols ([, +, ', etc.) that are between the last match and this one
+        nextString += currentString.substring(lastIndex, match.index);
+        const symbol = match[1];                                                    // extracts the symbol character (e.g., 'F')
+        const params = match[2] ? match[2].split(',').map(Number) : [];             // if parameters exist it splits the string by commas and converts each part to a number
+        let replacement = match[0];                                                 // sets the default replacement to be the original matched string itself
 
-            const symbol = match[1];
-            const params = match[2] ? match[2].split(',').map(Number) : [];
-            let replacement = match[0]; // Di default, il modulo rimane invariato
-
-            if (rules[symbol]) {
-                let rule = rules[symbol];
-                if (Array.isArray(rule)) {
-                    let random = Math.random();
-                    let threshold = 0;
-                    for (const r of rule) {
-                        threshold += r.prob;
-                        if (random < threshold) {
-                            rule = r.rule;
-                            break;
-                        }
-                    }
-                }
-                if (typeof rule === 'function') {
-                    replacement = rule(...params);
-                } else {
-                    replacement = rule;
-                }
+        if (rules[symbol]) {                                                        // checks if a rule exists for the current symbol
+          let rule = rules[symbol];
+          if (Array.isArray(rule)) {                                                // handles stochastic rules (if the rule is an array of choices)
+            let random = Math.random();                                             // generates a random number between 0.0 and 1.0
+            let threshold = 0;                                                      // initializes a probability threshold
+            for (const r of rule) {                                                 // iterates through the possible rule choices
+              threshold += r.prob;                                                  // adds the probability of the current choice to the threshold
+              if (random < threshold) {                                             // checks if the random number falls within this choice's probability range
+                rule = r.rule;                                                      // selects this rule
+                break;
+              }
             }
-            nextString += replacement;
-            lastIndex = match.index + match[0].length;
+          }
+          if (typeof rule === 'function') {                                         // handles parametric rules (if the rule is a function)
+            replacement = rule(...params);                                          // calls the function with the parameters to get the replacement string
+          } 
+          else {                                                                    // if the rule is a simple string
+            replacement = rule;                                                     // uses the string as the replacement
+          }
         }
-        // Aggiungi qualsiasi simbolo rimasto alla fine della stringa
-        nextString += currentString.substring(lastIndex);
-        currentString = nextString;
+        nextString += replacement;                                                 // appends the replacement string to the result
+        lastIndex = match.index + match[0].length;                                 // updates lastIndex to the position right after the currently processed module
+      }
+      nextString += currentString.substring(lastIndex);                            // adds any remaining characters from the end of the original string that came after the last module
+      currentString = nextString;                                                  // sets the result of this iteration as the new current string
     }
     return currentString;
   }
 
   function interpretLSystem(lString, angleDegrees = 25.7) {
+    // This function acts as a "turtle graphics" interpreter:
+    // it takes the final expanded L-system string and translates its sequence of symbols into a list of geometric objects (branches, leaves, flowers),
+    // each with a calculated world transformation matrix
+    // It simulates a "turtle" moving in 3D space, drawing parts and changing its orientation based on the symbols in the string
     const result = [];
-    const stack = [];
-    let currentMatrix  = Mat4.identity();
+    const stack = [];                                                                         // it will be used to save and restore the turtle's state (transformation matrix)
+    let currentMatrix  = Mat4.identity();                                                     // initializes the current transformation matrix
 
-    Mat4.translate(currentMatrix , currentMatrix , [0, config.environment.plantBaseY, 0]);
+    Mat4.translate(currentMatrix , currentMatrix , [0, config.environment.plantBaseY, 0]);    // translates the starting matrix to the plant's base height
 
-    const angle = angleDegrees * (Math.PI / 180);
+    const angle = angleDegrees * (Math.PI / 180);                                             // converts the angle from degrees to radians (Mat4 rotation functions expect radians)
 
-    // Itera su ogni singolo carattere della stringa, senza saltarne nessuno.
     for (let i = 0; i < lString.length; i++) {
-        const symbol = lString[i];
-        let params = [];
+      const symbol = lString[i];                                                              // gets the current character
+      let params = [];
 
-        // Gestione parametri: se il simbolo è una lettera MAIUSCOLA
-        // e il carattere successivo è '(', allora leggi i parametri.
-        if (symbol >= 'A' && symbol <= 'Z' && i + 1 < lString.length && lString[i+1] === '(') {
-            const closingParenIndex = lString.indexOf(')', i);
-            if (closingParenIndex !== -1) {
-                const paramString = lString.substring(i + 2, closingParenIndex);
-                if (paramString) params = paramString.split(',').map(Number);
-                i = closingParenIndex; // Salta l'indice alla fine dei parametri
-            }
+      // parameter handling: if the symbol is an uppercase letter and the next character is '(' then read the parameters
+      if (symbol >= 'A' && symbol <= 'Z' && i + 1 < lString.length && lString[i+1] === '(') {
+        const closingParenIndex = lString.indexOf(')', i);                                    // finds the index of the closing parenthesis
+        if (closingParenIndex !== -1) {                                                       // checks if a closing parenthesis was found
+          const paramString = lString.substring(i + 2, closingParenIndex);                    // extracts the parameter string (the part between the parentheses)
+          if (paramString) params = paramString.split(',').map(Number);                       // parses the parameters into numbers if the string is not empty
+          i = closingParenIndex;                                                              // skips the index to the end of the parameters
         }
+      }
 
-        switch (symbol) {
-            case 'F': {
-                const segmentLength = 0.5;
-                const segmentWidth = 1.0;
-                let localTransform = Mat4.identity();
-                Mat4.translate(localTransform, localTransform, [0, segmentLength / 2, 0]);
-                Mat4.scale(localTransform, localTransform, [segmentWidth, segmentLength, segmentWidth]);
-                const worldMatrix = Mat4.multiply(Mat4.identity(), currentMatrix , localTransform);
-                result.push({
-                  symbol: 'F',
-                  matrix: worldMatrix
-                });
-                Mat4.translate(currentMatrix , currentMatrix , [0, segmentLength, 0]);
-                break;
-            }
-            case 'L': {
-              const leafScale = 0.2;
-              let leafMatrix = Mat4.clone(currentMatrix);
-            
-              // Riporta indietro la foglia della lunghezza reale del segmento
-              Mat4.translate(leafMatrix, leafMatrix, [0, -0.7, 0]);
-            
-              Mat4.scale(leafMatrix, leafMatrix, [leafScale, leafScale, leafScale]);
-            
-              const minAngle = -30 * (Math.PI / 180);
-              const maxAngle = 30 * (Math.PI / 180);
-              const randomPitch = Math.random() * (maxAngle - minAngle) + minAngle;
-              const randomYaw = Math.random() * Math.PI * 2;
-            
-              Mat4.rotateY(leafMatrix, leafMatrix, randomYaw);
-              Mat4.rotateZ(leafMatrix, leafMatrix, randomPitch);
-            
-              result.push({
-                symbol: 'L',
-                matrix: leafMatrix,
-              });
-              break;
-            }
-            case 'X': {
-              const flowerScale = 0.1;
-              const flowerOffsetY = 0;
-              let flowerMatrix = Mat4.clone(currentMatrix);
-              Mat4.translate(flowerMatrix, flowerMatrix, [0, flowerOffsetY, 0]);
-              Mat4.scale(flowerMatrix, flowerMatrix, [flowerScale, flowerScale, flowerScale])
-
-              result.push({
-                symbol: 'K',
-                matrix: flowerMatrix,
-              });
-              break;
-            }
-            
-            // Turn Left/Right (Yaw) -> Rotazione attorno all'asse Up (Z)
-            case '+': Mat4.rotateZ(currentMatrix , currentMatrix ,  angle); break;
-            case '-': Mat4.rotateZ(currentMatrix , currentMatrix , -angle); break;
-            
-            // Pitch Down/Up -> Rotazione attorno all'asse Right (X)
-            case '&': Mat4.rotateX(currentMatrix , currentMatrix ,  angle); break;
-            case '^': Mat4.rotateX(currentMatrix , currentMatrix , -angle); break;
-            
-            // Roll Left/Right -> Rotazione attorno all'asse Forward (Y)
-            case '\\': Mat4.rotateY(currentMatrix , currentMatrix ,  angle); break;
-            case '/': Mat4.rotateY(currentMatrix , currentMatrix , -angle); break;
-
-            // Turn Around -> Rotazione di 180 gradi attorno all'asse Up (Z)
-            case '|': Mat4.rotateZ(currentMatrix , currentMatrix , Math.PI); break;
-
-            // Gestione dello stack
-            case '[': 
-              stack.push(Mat4.clone(currentMatrix));
-              break;
-            case ']': 
-              if (stack.length > 0) {
-                currentMatrix = stack.pop();
-              }
-              break;
-            
-            // Ignora i simboli non riconosciuti (come 'f' o '{' nel preset 3D Bush)
-            default:
-              break;
+      switch (symbol) {
+        case 'F': {                                                                                  // branch
+          const segmentLength = 0.5;
+          const segmentWidth = 1.0;
+          let localTransform = Mat4.identity();                                                      // creates a local transformation matrix
+          Mat4.translate(localTransform, localTransform, [0, segmentLength / 2, 0]);                 // translates the cylinder to its center
+          Mat4.scale(localTransform, localTransform, [segmentWidth, segmentLength, segmentWidth]);   // scales the cylinder
+          const worldMatrix = Mat4.multiply(Mat4.identity(), currentMatrix , localTransform);        // transforms it into world space
+          result.push({                                                                              // adds the new branch to the results
+            symbol: 'F',
+            matrix: worldMatrix
+          });
+          Mat4.translate(currentMatrix , currentMatrix , [0, segmentLength, 0]);                     // updates the turtle's position
+          break;
         }
-    }
-    return result;
-  }
-  // Test simbolico
-  function runLSystemSymbolicTest() {
-    console.log("---- L-System Symbolic Test ----");
-    const testAxiom = 'F';
-    const testRules = { 'F': 'F+F-F' };
-    const testIterations = 3;
-    let currentString = testAxiom;
-    console.log(`Iterazione 0: ${currentString}`);
-    for (let i = 1; i <= testIterations; i++) {  // un'iterazione alla volta per vederne l'evoluzione
-      currentString = expandLSystem(currentString, testRules, 1);  // chiama la funzione expandLSystem (vedi riga 588) con 1 sola iterazione
-      console.log(`Iterazione ${i}: (lunghezza ${currentString.length})`);
-      console.log(currentString.substring(0, 100) + (currentString.length > 100 ? '...' : ''));  // stampa dei primi 100 caratteri
-    }
-    console.log("---- End of Test ----");
-  }
-
-  // Trasforma l'output puro dell'interprete in una descrizione di scena completa.
-  function LSysToSceneDesc(pureList) {
-    return pureList.map(item  => {
-      switch(item.symbol) {
-        case 'F':
-          return { type: 'branch', color: [0.29, 0.61, 0.02], modelMatrix: item.matrix };
-        case 'L':
-          return { type: 'leaf', color: [1, 1, 1], modelMatrix: item.matrix };             // colore neutro per le foglie con texture
-        case 'K':
-          return { type: 'flower', color: null, modelMatrix: item.matrix };                // il colore è ricavato dal materiale
+        case 'L': {                                                                                  // leaf
+          const leafScale = 0.2;
+          let leafMatrix = Mat4.clone(currentMatrix);
+        
+          // move the leaf back by the actual length of the segment
+          Mat4.translate(leafMatrix, leafMatrix, [0, -0.7, 0]);
+          Mat4.scale(leafMatrix, leafMatrix, [leafScale, leafScale, leafScale]);                    // applies the scale to the leaf
+        
+          const minAngle = -30 * (Math.PI / 180);                                                   // defines the minimum pitch angle
+          const maxAngle = 30 * (Math.PI / 180);                                                    // defines the maximum pitch angle
+          const randomRotz = Math.random() * (maxAngle - minAngle) + minAngle;                       // calculates a random pitch
+          const randomRotY = Math.random() * Math.PI * 2;                                          // calculates a random yaw
+        
+          Mat4.rotateY(leafMatrix, leafMatrix, randomRotY);                                        // rotates the leaf around its "stem"
+          Mat4.rotateZ(leafMatrix, leafMatrix, randomRotz);                                          // applies the pitch (tilt)
+        
+          result.push({                                                                             // adds the new leaf to the results
+            symbol: 'L',
+            matrix: leafMatrix,
+          });
+          break;
+        }
+        case 'X': {                                                                                 // flower
+          const flowerScale = 0.1;
+          const flowerOffsetY = 0;                                                                  // defines the vertical offset
+          let flowerMatrix = Mat4.clone(currentMatrix);                                             // clones the current matrix for the flower
+          Mat4.translate(flowerMatrix, flowerMatrix, [0, flowerOffsetY, 0]);                        // applies the vertical offset
+          Mat4.scale(flowerMatrix, flowerMatrix, [flowerScale, flowerScale, flowerScale])           // applies the scale
+          result.push({                                                                             // adds the new flower to the results
+            symbol: 'X',
+            matrix: flowerMatrix,
+          });
+          break;
+        }
+        
+        // Turn Left/Right
+        case '+': Mat4.rotateZ(currentMatrix , currentMatrix ,  angle); break;
+        case '-': Mat4.rotateZ(currentMatrix , currentMatrix , -angle); break;
+        
+        // Turn Down/Up
+        case '&': Mat4.rotateX(currentMatrix , currentMatrix ,  angle); break;
+        case '^': Mat4.rotateX(currentMatrix , currentMatrix , -angle); break;
+        
+        // Tilt Left/Right 
+        case '\\': Mat4.rotateY(currentMatrix , currentMatrix ,  angle); break;
+        case '/': Mat4.rotateY(currentMatrix , currentMatrix , -angle); break;
+        
+        // Turn Around
+        case '|': Mat4.rotateZ(currentMatrix , currentMatrix , Math.PI); break;
+        
+        // Stack handling
+        case '[': 
+          stack.push(Mat4.clone(currentMatrix));                                                       // pushes a copy of the current matrix onto the stack
+          break;
+        case ']': 
+          if (stack.length > 0) {                                                                      // checks if the stack is not empty
+            currentMatrix = stack.pop();                                                               // pops the last matrix from the stack, restoring the previous state
+          }
+          break;
+        
         default:
+          // ignores unrecognized symbols
+          break;
+      }
+    }
+    return result;                                                                                     // returns the final list of transformations
+  }
+
+  function runLSystemSymbolicTest() {
+    // Debugging function: tests the core string expansion logic of the L-system engine (expandLSystem) with a simple pattern and prints the results of each iteration to the console
+    console.log("---- L-System Symbolic Test ----");                                                   // header for the test
+    const testAxiom = 'F';                                                                             // starting axiom for the test
+    const testRules = { 'F': 'F+F-F' };                                                                // set of rules for the test
+    const testIterations = 3;                                                                          // number of iterations for the test
+    let currentString = testAxiom;                                                                     // initializes the current string with the axiom
+    console.log(`Iteration 0: ${currentString}`);                                                      // logs the initial state (iteration 0)
+    for (let i = 1; i <= testIterations; i++) {                                                        // loops for each iteration to show the evolution
+      currentString = expandLSystem(currentString, testRules, 1);                                      // calls the expandLSystem function (see line 1689) with a single iteration
+      console.log(`Iteration ${i}: (length ${currentString.length})`);                                 // logs the current iteration number and the string length
+      console.log(currentString.substring(0, 100) + (currentString.length > 100 ? '...' : ''));        // prints the first 100 characters of the string
+    }
+    console.log("---- End of Test ----");                                                              // footer for the test
+  }
+
+  function LSysToSceneDesc(pureList) {
+    // Transforms the raw output of the L-system interpreter to a semantic scene description:
+    // interpretLSystem produces a list of objects with symbols ('F', 'L', 'Z') and matrices,
+    // this function maps those symbols to meaningful object types ('branch', 'leaf', 'flower') and assigns default properties
+  
+    return pureList.map(item  => {                                                         // iterates over each item in the pure list
+      switch(item.symbol) {                                                                // checks the symbol of the current item
+        case 'F':
+          return { type: 'branch', color: [0.29, 0.61, 0.02], modelMatrix: item.matrix };  // branch description object
+        case 'L':
+          return { type: 'leaf', color: [1, 1, 1], modelMatrix: item.matrix };             // neutral color for textured leaves
+        case 'X':
+          return { type: 'flower', color: null, modelMatrix: item.matrix };                // the color is derived from the material
+        default:                                                                           // for any other symbol
           return null;
       }
-    }).filter(Boolean);                                 // rimuove eventuali elementi nulli
+    }).filter(Boolean);                                                                    // removes any null elements from the final array
   }
 
-  // Costruzione della scena L-System
+  // L-System scene construction
   function buildLSystem() {
-    flowerCount = 0; // azzera il cap per la nuova scena
-    // 1. Se non siamo in stress test, seleziona un preset a caso
-    const preset = config.lSystem.presets[config.lSystem.currentPreset];
+    flowerCount = 0;                                                               // resets the cap for the new scene
+  
+    const preset = config.lSystem.presets[config.lSystem.currentPreset];           // gets the currently selected preset
     console.log(`Using preset: "${preset.name}"`);
-    
-    // 2. Leggi i parametri dalla configurazione globale (che la UI può aver modificato)
-    const iterCount = config.lSystem.iterations;
-    const angleDegrees = config.lSystem.angle;
 
-    // 3. Esegui la pipeline usando i dati del preset
-    const expandedString = expandLSystem(preset.axiom, preset.rules, iterCount);
-    const lSystemOutput = interpretLSystem(expandedString, angleDegrees);
-    const sceneDescription = LSysToSceneDesc(lSystemOutput);
-    buildScene(sceneDescription);
+    const iterCount = config.lSystem.iterations;                                   // gets the number of iterations
+    const angleDegrees = config.lSystem.angle;                                     // gets the angle in degrees
+
+    const expandedString = expandLSystem(preset.axiom, preset.rules, iterCount);   // calls expandLSystem (see line 1689)
+    const lSystemOutput = interpretLSystem(expandedString, angleDegrees);          // calls interpretLSystem (see line 1735) to get geometry data
+    const sceneDescription = LSysToSceneDesc(lSystemOutput);                       // calls LSysToSceneDesc (see line 1861)
+    buildScene(sceneDescription); // builds the scene from the description
   }
 
-  // Costruzione della scena dalla sua descrizione
   function buildScene(description) {
-    sceneObjects.length = 0;                // svuota la scena
-    growthQueue = [];                       // svuota la coda precedente
+    // Constructs the scene from its description, preparing it for rendering
+    sceneObjects.length = 0;                                                                // clears the scene
+    growthQueue = [];                                                                       // clears the previous queue
 
-    // Aggiunta del terreno
-    if (!sceneObjects.some(obj => obj.description.type === 'ground')) {
-      if (!groundMeshHandle) {                                                             // crea la geometria del terreno solo una volta
-        const groundGeo = createPlane(60, 60);                                              // un piano di 60x60 unità
+    // add the ground
+    if (!sceneObjects.some(obj => obj.description.type === 'ground')) {                     // checks if the ground is already in the scene
+      if (!groundMeshHandle) {                                                              // creates the ground geometry only once
+        const groundGeo = createPlane(60, 60);                                              // a 60x60 unit plane
         groundMeshHandle = meshDrawer.createMesh(groundGeo);
       }
       let groundMatrix = Mat4.identity();
-      Mat4.translate(groundMatrix, groundMatrix, [0, config.environment.plantBaseY, 0]);    // sposta il terreno dove inizia la pianta
-      sceneObjects.push({                                                                   // aggiunge il terreno alla scena
+      Mat4.translate(groundMatrix, groundMatrix, [0, config.environment.plantBaseY, 0]);    // moves the ground to where the plant starts
+      sceneObjects.push({                                                                   // adds the ground to the scene
           meshHandle: groundMeshHandle,
           modelMatrix: groundMatrix,
-          color: [0.3, 0.4, 0.2],                                                           // verde scuro
+          color: [0.3, 0.4, 0.2],                                                           // dark green
           birthTime: performance.now(),
           scale: [1,1,1],
           description: {
@@ -1913,14 +1919,14 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
       });
     }
 
-    // Itera su ogni oggetto descritto nella struttura dati
+    // iterates over each object described in the data structure
     for (const objDesc of description) {
-      if (objDesc.type === 'branch' || objDesc.type === 'leaf' || objDesc.type === 'flower') {
+      if (objDesc.type === 'branch' || objDesc.type === 'leaf' || objDesc.type === 'flower') { // checks if the object is a plant part
         let modelMatrix;
-        if (objDesc.modelMatrix) {                // controlla se la matrice è già calcolata (dal L-System)
+        if (objDesc.modelMatrix) {                // checks if the matrix is already calculated (from the L-System)
           modelMatrix = objDesc.modelMatrix;
         } 
-        else {                                    // altrimenti la calcola dalla lista di transforms (per il caricamento da file)
+        else {                                    // otherwise, calculates it from the list of transforms (for loading from a file)
           modelMatrix = Mat4.identity();
           for (const t of objDesc.transforms) {
             if (t.type === 'translate') Mat4.translate(modelMatrix, modelMatrix, t.value);
@@ -1930,157 +1936,155 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
             else if (t.type === 'scale') Mat4.scale(modelMatrix, modelMatrix, t.value);
           }
         }
-        growthQueue.push({ objDesc, modelMatrix });  // aggiunge i rami alla coda, non alla scena
+        growthQueue.push({ objDesc, modelMatrix });  // adds the parts to the queue, not to the scene
       }
     }
   }
 
-  function handlePlantDeath() {
+  function handlePlantDeath() { 
+    // This function is triggered when the plant "dies" (i.e., is not watered for a full day cycle)
+    // It manages the visual feedback for this event
     console.log("Plant has died!");
   
-    // Overlay marrone su fiori e foglie
-    // -> puoi sfruttare un uniform extra tipo u_deadOverlay
-    // oppure moltiplicare i colori in fase di draw
-    // esempio semplice:
-    deadOverlay = [0.4, 0.25, 0.1, 0.6];  // marrone semi-trasparente
+    deadOverlay = [0.4, 0.25, 0.1, 0.6];  // semi-transparent brown overlay
+    flowersFrozen = true;                 // freezes the flower animation  (bypasses animation updates)
   
-    // Blocca animazione fiori (flag globale che bypassa update animazioni)
-    flowersFrozen = true;
-  
-    // Mostra messaggio a schermo
-    let msg = document.getElementById("deathMsg");
+    // displays a message on the screen
+    let msg = document.getElementById("deathMsg");                                      // gets the message element
     if (!msg) {
-      msg = document.createElement("div");
-      msg.id = "deathMsg";
-      msg.textContent = "Your plant should be watered at least once a day! Try again";
+      msg = document.createElement("div");                                              // creates a new div element
+      msg.id = "deathMsg";                                                              // sets the id of the message
+      msg.textContent = "Your plant should be watered at least once a day! Try again";  // sets the message text
       msg.style.position = "absolute";
       msg.style.top = "50%";
       msg.style.left = "50%";
-      msg.style.transform = "translate(-50%, -50%)";
+      msg.style.transform = "translate(-50%, -50%)";                                    // fine-tunes the centering
       msg.style.color = "red";
       msg.style.background = "rgba(0,0,0,0.7)";
       msg.style.padding = "10px 20px";
-      msg.style.borderRadius = "8px";
+      msg.style.borderRadius = "8px";                                                    // rounds the corners
       msg.style.fontSize = "18px";
-      document.body.appendChild(msg);
+      document.body.appendChild(msg);                                                    // appends the message to the document body
     }
   
-    // Reset pianta dopo breve delay
-    setTimeout(() => {
-      if (msg) msg.remove();
-      config.environment.isDead = false;
-      ui.onRegenerate();  // genera una nuova pianta
-      flowersFrozen = false;
-      deadOverlay = null;
-    }, 4000); // 4 secondi di pausa prima del reset
+    // reset the plant after a short delay
+    setTimeout(() => {                                 // sets a timer
+      if (msg) msg.remove();                           // removes the message if it exists
+      config.environment.isDead = false;               // marks the plant as not dead
+      ui.onRegenerate();                               // callls ui.onRegenerate (see line 1256) to generate a new plant
+      flowersFrozen = false; // unfreezes the flower animation
+      deadOverlay = null; // removes the dead overlay color
+    }, 4000); // 4 seconds of pause before the reset
   }
-  
 
-  // Scena iniziale
-  buildLSystem()  // chiama la funzione BuildLSystem (vedi riga 671)
+  // initial scene
+  buildLSystem()  // calls the buildLSystem function (see line 671)
   
-  // Funzione per aggiornare il contatore di oggetti nella UI
+  // function to update the object counter in the UI
   function updateObjCount() {
     document.getElementById("objCount").textContent = sceneObjects.length;
   }
 
-  // Render loop
+  // Rendering loop
   function render(currentTime) {
-    //FASE 1: AGGIORNAMENTO DELLO STATO
-    const now = performance.now();
-    if (!window._lastFrameTime) window._lastFrameTime = now;
-    const deltaTime = now - window._lastFrameTime;                                   // tempo trascorso dall'ultimo frame in millisecondi
-    window._lastFrameTime = now;                                                     // Aggiorna l'ultimo timestamp registrato per il prossimo frame
-    // Calcolo e aggiornamento degli FPS ogni mezzo secondo
-    frameCount++;  // incrementa il contatore dei frame
-    if (currentTime - fpsTime >= 500) {
-      fps = Math.round((frameCount*1000)/(currentTime - fpsTime));
-      document.getElementById("fps").textContent = fps;
-      frameCount = 0;
-      fpsTime = currentTime;
+    // This function is the main render loop of the application, it is called repeatedly by the browser via requestAnimationFrame
+    // In each call it performs all the necessary steps to update the application's state and draw a single frame to the screen:
+    // - updating animations
+    // - handling the day/night cycle
+    // - processing the plant's growth
+    // - executing the multi-pass rendering pipeline (shadow pass, main pass)
+
+    // PHASE 1: STATE UPDATE
+    const now = performance.now();                                         // timestamp
+    if (!window._lastFrameTime) window._lastFrameTime = now;               // initializes the last frame time if it's the first frame
+    const deltaTime = now - window._lastFrameTime;                         // time elapsed since the last frame in milliseconds
+    window._lastFrameTime = now;                                           // updates the last recorded timestamp for the next frame
+    
+    // Calculate and updates FPS every half second
+    frameCount++; 
+    if (currentTime - fpsTime >= 500) {                                    // checks if half a second has passed
+      fps = Math.round((frameCount * 1000) / (currentTime - fpsTime));     // calculates the frames per second
+      document.getElementById("fps").textContent = fps;                    // updates the FPS display in the UI
+      frameCount = 0;                                                      // resets the frame counter
+      fpsTime = currentTime;                                               // resets the FPS timer
     }
 
-    // Aggiorna la variabile dayTime (0.0 a 1.0) per far avanzare il ciclo giorno/notte
+    // Update the dayTime variable (0.0 to 1.0) to advance the day/night cycle
     if (config.environment.autoCycle) {
-      // aggiorna sempre il tempo del giorno
       config.environment.dayTime = (config.environment.dayTime + (deltaTime / 1000) / config.environment.dayDuration) % 1.0;
-      // Aggiorna lo slider UI con l’avanzamento del giorno
-      const slider = document.getElementById("dayTimeSlider");
-      if (slider) {
-        slider.value = config.environment.dayTime;
-        // aggiorna anche l’output accanto allo slider
-        if (slider.nextElementSibling) {
-          slider.nextElementSibling.value = config.environment.dayTime.toFixed(3);
+      const slider = document.getElementById("dayTimeSlider");         // gets the time of day slider element
+      if (slider) {                                                    // checks if the slider element exists
+        slider.value = config.environment.dayTime;                     // sets the slider's value
+        // also updates the output next to the slider
+        if (slider.nextElementSibling) {                               // checks if there is an element next to the slider
+          slider.nextElementSibling.value = config.environment.dayTime.toFixed(3);    // updates its value with 3 decimal places
         }
       }
-      // controlla se è scattato un nuovo giorno (reset da ~1 -> 0)
-      if (config.environment.dayTime < prevDayTime) {
-        if (!config.environment.wasWateredToday) {
-          config.environment.isDead = true;
-          handlePlantDeath();
+      
+      if (config.environment.dayTime < prevDayTime) {                   // checks if a new day has started (resets from 1 -> 0)
+        if (!config.environment.wasWateredToday) {                      // checks if the plant was not watered on the previous day
+          config.environment.isDead = true;                             // marks the plant as dead
+          handlePlantDeath();                                           // calls handlePlantDeath (see line 1944) to trigger the plant death sequence
         }
-        config.environment.wasWateredToday = false;
+        config.environment.wasWateredToday = false;                     // resets the watering status for the new day
       }
-      // salva il valore corrente per confronto al prossimo frame
-      prevDayTime = config.environment.dayTime;
+      prevDayTime = config.environment.dayTime;                         // saves the current value for comparison in the next frame
     }
 
-    // Logica di crescita sequenziale con velocità variabile
-    if (config.animation.growthSpeed > 0) {                                              // speed=0 -> pausa, speed=2 -> 500ms/ramo, speed=10 -> 100ms/ramo
-        const growthIntervalMs = 1000 / config.animation.growthSpeed;
-        timeSinceLastGrowth += deltaTime;
+    // Sequential growth logic with variable speed
+    if (config.animation.growthSpeed > 0) {                            // speed=0 -> pause, speed=2 -> 500ms/branch, speed=5 -> 200ms/branch
+        const growthIntervalMs = 1000 / config.animation.growthSpeed;  // calculates the time interval between adding new branches
+        timeSinceLastGrowth += deltaTime;                              // accumulates the time since the last branch was added
 
-        while (timeSinceLastGrowth >= growthIntervalMs && growthQueue.length > 0) {
-            const { objDesc, modelMatrix } = growthQueue.shift();
+        while (timeSinceLastGrowth >= growthIntervalMs && growthQueue.length > 0) { // if enough time has passed and if there are items in the queue
+          const { objDesc, modelMatrix } = growthQueue.shift();                     // removes the first item from the queue
             
-            if (objDesc.type === "leaf" && leafParts.length === 0) {
-              console.log("⏸ Waiting for leaf asset before growing a leaf...");
-              growthQueue.unshift({ objDesc, modelMatrix });                            // rimete l'oggetto in cima alla coda
-              break;
-            }
+          if (objDesc.type === "leaf" && leafParts.length === 0) {           // checks if it's a leaf and if the leaf assets are not yet loaded
+            console.log("⏸ Waiting for leaf asset before growing a leaf...");
+            growthQueue.unshift({ objDesc, modelMatrix });                  // puts the object back at the front of the queue
+            break;                                                          // exits the while loop for this frame
+          }
 
-            if (objDesc.type === "flower" && flowerParts.length === 0) {
-              console.log("⏸ Waiting for flower asset before growing a flower...");
-              growthQueue.unshift({ objDesc, modelMatrix });
-              break;
-            }
+          if (objDesc.type === "flower" && flowerParts.length === 0) {      // checks if it's a flower and if the flower assets are not yet loaded
+            console.log("⏸ Waiting for flower asset before growing a flower...");
+            growthQueue.unshift({ objDesc, modelMatrix });                  // puts the object back at the front of the queue
+            break;                                                          // exits the while loop for this frame
+          }
 
-            if (objDesc) {
-                addPlantPart(objDesc, modelMatrix);
-            }
-            timeSinceLastGrowth -= growthIntervalMs;
+          if (objDesc) {                                                    // checks if the description object is valid
+              addPlantPart(objDesc, modelMatrix);                           // calls addPlantPart (see line 1680) to add the new part to the scene
+          }
+          timeSinceLastGrowth -= growthIntervalMs;                          // subtracts the interval from the timer for accuracy
         }
     }
 
-    updateObjCount();  // chiama la funzione updateObjCount (vedi riga 797) per aggiornare il numero di oggetti nella scena
+    updateObjCount();  // calls the updateObjCount function (see line 1984) to update the number of objects in the scene
 
-    // --- FIX animazione GLB: reset della cache per-frame ---
+    // GLB FLOWER ANIMATION: resets the per-frame cache
     if (flowerGLTF && flowerGLTF.animator) {
-      // la cache interna blocca i valori interpolati se non viene svuotata
+      // prevents the system to return the already calculated animation value of a previous flower for a neawly craeted flower
       flowerGLTF.animator._cache = null;
     }
-    // -------------------------------------------------------
 
+    gl.enable(gl.DEPTH_TEST);                                          // enables depth testing for correct object occlusion
+    gl.enable(gl.BLEND);                                               // enables transparency and blending
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);                // sets the standard blending function for transparency
 
-    gl.enable(gl.DEPTH_TEST);                                          // abilita il test di profondità per disegnare correttamente oggetti sovrapposti
-    gl.enable(gl.BLEND);                                               // abilita trasparenza e blending
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    // PARAMETRI DINAMICI
-    // SFONDO: colori del ciclo giorno/notte, scelti tramite questa pagina: https://rgbcolorpicker.com/0-1#google_vignette
-    // Alba
+    // DYNAMIC PARAMETERS
+    // BACKGROUND: day/night cycle colors, chosen from this page: https://rgbcolorpicker.com/0-1#google_vignette
+    // Dawn
     const DawnZ = [0.60, 0.78, 0.89];
     const DawnM = [0.79, 0.78, 0.79];
     const DawnH = [0.95, 0.72, 0.64];
-    // Giorno
+    // Day
     const DayZ = [0.28, 0.51, 0.68];
     const DayM = [0.58, 0.78, 0.89];
     const DayH = [0.56, 0.73, 0.85];
-    // Tramonto
+    // Sunset
     const DuskZ = [0.45, 0.43, 0.54];
     const DuskM = [0.94, 0.63, 0.44];
     const DuskH = [0.74, 0.39, 0.35];
-    // Notte
+    // Night
     const NightZ = [0.00, 0.12, 0.20];
     const NightM = [0.12, 0.22, 0.31];
     const NightH = [0.23, 0.21, 0.32];
@@ -2110,154 +2114,157 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
       { time: 1.00, value: NightH },
     ];
 
+    // Use interpolateMultiStop (see line 1288) to interpolate the colors in time
     const zenithColor = interpolateMultiStop(zenithStops, config.environment.dayTime);
     const horizonColor = interpolateMultiStop(horizonStops, config.environment.dayTime);
     const midColor = interpolateMultiStop(midStops, config.environment.dayTime);    
 
-    // SOLE E LUNA
-    // Timeline degli angoli (in radianti) per sole e suna
+    // SUN AND MOON
+    // timeline of angles (in radians) for sun and moon
     const PI = Math.PI;
     const sunAngleStops = [
-      { time: 0.000, value: [PI / 12] },                              // Inizio alba (15°)
-      { time: 0.125, value: [PI / 4] },                               // Alba (45°)
-      { time: 0.250, value: [75 * PI / 180] },                        // Inizio giorno (75°)
-      { time: 0.375, value: [105 * PI / 180] },                       // Mezzogiorno (105°)
-      { time: 0.500, value: [3 * PI / 4] },                           // Inizio tramonto (135°)
-      { time: 0.625, value: [165 * PI / 180] },                       // Tramonto (165°)
-      { time: 0.750, value: [195 * PI / 180] },                       // Inizio notte (195°)
-      { time: 0.825, value: [3 * PI / 2] },                           // Notte (270°)
-      { time: 0.875, value: [2 * PI] },                               // Notte (360°)
-      { time: 1.000, value: [PI / 12] }                               // Inizio alba (15°)
+      { time: 0.000, value: [PI / 12] },                              // dawn start (15°)
+      { time: 0.125, value: [PI / 4] },                               // dawn (45°)
+      { time: 0.250, value: [75 * PI / 180] },                        // day start (75°)
+      { time: 0.375, value: [105 * PI / 180] },                       // noon (105°)
+      { time: 0.500, value: [3 * PI / 4] },                           // sunset start (135°)
+      { time: 0.625, value: [165 * PI / 180] },                       // sunset (165°)
+      { time: 0.750, value: [195 * PI / 180] },                       // night start (195°)
+      { time: 0.825, value: [3 * PI / 2] },                           // night (270°)
+      { time: 0.875, value: [2 * PI] },                               // night (360°)
+      { time: 1.000, value: [PI / 12] }                               // dawn start (15°)
     
     ];
     const moonAngleStops = [
-      { time: 0.000, value: [5 * PI / 6] },                           // Inizio alba (150°)
-      { time: 0.125, value: [PI] },                                   // Alba (180°)
-      { time: 0.250, value: [3 * PI / 2] },                           // Inizio giorno (270°)
-      { time: 0.375, value: [2 * PI] },                               // Mezzogiorno (360°/0°)
-      { time: 0.500, value: [PI / 6] },                               // Inizio tramonto (30°)
-      { time: 0.625, value: [PI / 3] },                               // Tramonto (60°)
-      { time: 0.750, value: [PI / 2] },                               // Inizio notte (90°)
-      { time: 0.875, value: [2 * PI / 3] },                           // Notte (120°)
-      { time: 1.000, value: [5 * PI / 6] },                           // Inizio alba (150°)
+      { time: 0.000, value: [5 * PI / 6] },                           // dawn start (150°)
+      { time: 0.125, value: [PI] },                                   // dawn (180°)
+      { time: 0.250, value: [3 * PI / 2] },                           // day start (270°)
+      { time: 0.375, value: [2 * PI] },                               // noon (360°/0°)
+      { time: 0.500, value: [PI / 6] },                               // sunset start (30°)
+      { time: 0.625, value: [PI / 3] },                               // sunset (60°)
+      { time: 0.750, value: [PI / 2] },                               // night start (90°)
+      { time: 0.875, value: [2 * PI / 3] },                           // night (120°)
+      { time: 1.000, value: [5 * PI / 6] },                           // dawn start (150°)
     ];
-    // Calcolo di angoli e posizioni
+    // calculate angles and positions
     const sunAngle = interpolateMultiStop(sunAngleStops, config.environment.dayTime, true)[0];
     const moonAngle = interpolateMultiStop(moonAngleStops, config.environment.dayTime, true)[0];
     const orbitRadius = 25.0;
     const sunPosition = [-Math.cos(sunAngle) * orbitRadius, (Math.sin(sunAngle) * orbitRadius) + config.environment.plantBaseY, -5];
-    const moonPosition = [-Math.cos(moonAngle) * orbitRadius, ((Math.sin(moonAngle) * orbitRadius) + config.environment.plantBaseY) * 0.9, -5];  // luna leggermente più bassa
+    const moonPosition = [-Math.cos(moonAngle) * orbitRadius, ((Math.sin(moonAngle) * orbitRadius) + config.environment.plantBaseY) * 0.9, -5];  // moon slightly lower
 
-    // LUCE
+    // LIGHT
     let lightPosition, lightColor, lightIntensity;
-    const cameraPosition = camera.getEyePosition();
+    const cameraPosition = camera.getEyePosition();        // calls function getEyePosition (see line 382) to obtain the position of th camera
 
-    // Controlla se il sole è sopra l'orizzonte (angolo tra 0 e 180 gradi)
+    // checks if the sun is above the horizon (angle between 0 and 180 degrees)
     if (sunPosition[1] > config.environment.plantBaseY) {
-      // Giorno
+      // day
       lightPosition = sunPosition;
       lightColor = [1.0, 1.0, 0.3];
-      // L'intensità è proporzionale all'altezza del sole
+      // intensity is proportional to the sun's height
       lightIntensity = (Math.max(0, sunPosition[1] / orbitRadius)) * 1.5;
     } 
     else {
-      // Notte
+      // night
       lightPosition = moonPosition;
       lightColor = [1.0, 1.0, 1.0];
-      // L'intensità è proporzionale all'altezza della luna
-      lightIntensity = Math.max(0, moonPosition[1] / orbitRadius) * 0.25;                        // luna un po' meno intensa
+      // intensity is proportional to the moon's height
+      lightIntensity = Math.max(0, moonPosition[1] / orbitRadius) * 0.25;                        // moon is a bit less intense
     }
 
-    // Matrici per la luce
+    // matrices for the light
     const lightView = Mat4.identity();
     Mat4.lookAt(lightView, sunPosition, [0, config.environment.plantBaseY, 0], [0, 1, 0]);
     const lightProj = Mat4.identity();
-    const orthoSize = 10.0;                                                                      // area coperta dalla shadow map
+    const orthoSize = 10.0;                                                                      // area covered by the shadow map
     Mat4.ortho(lightProj, -orthoSize, orthoSize, -orthoSize, orthoSize, 1.0, 40.0);
     const lightSpaceMatrix = Mat4.multiply(Mat4.identity(), lightProj, lightView);
 
-    // FASE 2: SHADOW PASS
-    // Shadow pass
-    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFramebuffer);  // lega il framebuffer della shadow map: il rendering scriverà sulla sua depth texture
-    gl.viewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);    // imposta viewport per corrispondere alle dimensioni della shadow map
-    gl.clear(gl.DEPTH_BUFFER_BIT);                          // pilisce il buffer di profondità della shadow map
-    gl.cullFace(gl.FRONT);                                  // attiva il culling delle facce frontali per ridurre gli artefatti ("peter panning")
+    // PHASE 2: SHADOW PASS
+    // shadow pass
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFramebuffer);  // binds the shadow map framebuffer: rendering will write to its depth texture
+    gl.viewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);    // sets the viewport to match the shadow map dimensions
+    gl.clear(gl.DEPTH_BUFFER_BIT);                          // clears the shadow map's depth buffer
+    gl.cullFace(gl.FRONT);                                  // enables front-face culling to reduce artifacts ("peter panning")
 
-    gl.useProgram(depthProgram);                            // usa lo shader per la profondità
-    gl.uniformMatrix4fv(gl.getUniformLocation(depthProgram, "u_lightSpaceMatrix"), false, lightSpaceMatrix);    // matrice della luce
+    gl.useProgram(depthProgram);                            // uses the depth shader
+    gl.uniformMatrix4fv(gl.getUniformLocation(depthProgram, "u_lightSpaceMatrix"), false, lightSpaceMatrix);    // sets the light's matrix
 
-    // Disegna solo gli oggetti che proiettano ombre (rami, foglie e fiori)
+    // draws only the objects that cast shadows (branches, leaves, and flowers)
     for (const obj of sceneObjects) {
       if (!obj.description) continue;
     
       const type = obj.description.type;
-      if (type === 'branch' || type === 'leaf' || type === 'flower') {  // solo rami, foglie e fiori proiettano ombre
+        if (type === 'branch' || type === 'leaf' || type === 'flower') {  // only branches, leaves, and flowers cast shadows
     
-        // --- Evita ombre prima della “nascita” (coerente con main pass) ---
-        const ageMs = currentTime - (obj.birthTime ?? 0);
-        const startLeaf   = (config.animation && config.animation.leafStartTime   != null) ? config.animation.leafStartTime   : 0;
-        const startFlower = (config.animation && config.animation.flowerStartTime != null) ? config.animation.flowerStartTime : 0;
-        if (type === 'leaf'   && ageMs < startLeaf)   continue;
-        if (type === 'flower' && ageMs < startFlower) continue;
+          // Avoids shadows before the "birth" (consistent with main pass)
+          const ageMs = currentTime - (obj.birthTime ?? 0);               // calculates the object's age in milliseconds
+          // Checks if the leaf and the flower have a start time defined, falls back to 0
+          const startLeaf   = (config.animation && config.animation.leafStartTime   != null) ? config.animation.leafStartTime   : 0;
+          const startFlower = (config.animation && config.animation.flowerStartTime != null) ? config.animation.flowerStartTime : 0;
+          if (type === 'leaf'   && ageMs < startLeaf)   continue; // skips drawing the shadow for the leaf if it hasn't reached its start time
+          if (type === 'flower' && ageMs < startFlower) continue; // skips drawing the shadow for the flower if it hasn't reached its start time
     
-        const matrixForShadow = obj.modelMatrix;
-    
-        if (type === 'flower' && Array.isArray(flowerParts) && flowerGLTF && flowerGLTF.animator) {
-          // --- Ombre sincronizzate col main pass: usa SOLO obj.animTime (no modulo, no dayRange qui) ---
-          const animLen = (flowerGLTF.animationDuration ?? 0) || 0;
-          const EPS = 1e-5;
-          const tsec = (obj._startReady && typeof obj.animTime === 'number')
-            ? Math.max(0, Math.min(obj.animTime, Math.max(0, animLen - EPS)))
-            : 0; // prima dello start -> posa iniziale
-    
-          for (const part of flowerParts) {
-            // WORLD animata se tsec>0 e c'è anim., altrimenti posa iniziale del nodo
-            const world =
-              (tsec > 0 && animLen > 0)
-                ? (flowerGLTF.animator.getNodeWorldAt(tsec, part.nodeIndex) || part.localMatrix || Mat4.identity())
-                : (part.localMatrix || Mat4.identity());
-    
-            const model = Mat4.multiply(Mat4.identity(), matrixForShadow, world);
-            shadowDrawer.draw(part.handle || part.meshHandle, {
-              u_model: model,
-              u_lightSpaceMatrix: lightSpaceMatrix
-            });
+          const matrixForShadow = obj.modelMatrix;                // retrieves the object's model matrix for the shadow
+
+          // If the object is a flower, and the flower model has an animator, then we calculate the shadow for each part separately
+          if (type === 'flower' && Array.isArray(flowerParts) && flowerGLTF && flowerGLTF.animator) {
+            //  shadows synchronized with the main pass
+            const animLen = (flowerGLTF.animationDuration ?? 0) || 0;  // gets the animation length from the glTF model, or defaults to 0
+            const EPS = 1e-5;                                          // defines a small epsilon value
+            // if the object is started (obj._startReady is true) and animTime is a number:
+            // clamp the animTime within the animation's time range and otherwise set it to zero
+            const tsec = (obj._startReady && typeof obj.animTime === 'number')
+                ? Math.max(0, Math.min(obj.animTime, Math.max(0, animLen - EPS)))
+                : 0;
+
+            // Iterate through each part of the flower
+            for (const part of obj.meshParts) {
+              // animated world if time is over 0 and the animation exists, otherwise use the initial pose
+              const world =
+                  (tsec > 0 && animLen > 0)            // checks if the current time is positive and if there's an animation duration
+                      ? (flowerGLTF.animator.getNodeWorldAt(tsec, part.nodeIndex) || part.localMatrix || Mat4.identity())  // gets the world matrix at the current time from the animator
+                      : (part.localMatrix || Mat4.identity());                                                             // if there is no animation, uses the local matrix
+              const model = Mat4.multiply(Mat4.identity(), matrixForShadow, world);                                        // model matrix for the current part of the flower
+              shadowDrawer.draw(part.handle, { u_model: model, u_lightSpaceMatrix: lightSpaceMatrix });                    // draws the shadow of the current flower part
+            }
           }
-        } else {
-          // Rami e foglie (o fiore senza animator): ombra standard
-          shadowDrawer.draw(obj.meshHandle, {
-            u_model: matrixForShadow,
-            u_lightSpaceMatrix: lightSpaceMatrix
-          });
+          else {
+              // branches and leaves (or a flower without an animator): standard shadow
+              shadowDrawer.draw(obj.meshHandle, {
+                u_model: matrixForShadow,
+                u_lightSpaceMatrix: lightSpaceMatrix
+              });                                                                                                          // draws the shadow of the object
+          }
         }
-      }
     }
 
-    // Ripristina lo stato del buffer di default
+    // restores the default buffer state
     gl.cullFace(gl.BACK);
 
-    // FASE 4: MAIN PASS
+    // PHASE 4: MAIN PASS
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvas.width, canvas.height);                                                // imposta la viewport per corrispondere alledimensioni del canvas
+    gl.viewport(0, 0, canvas.width, canvas.height);          // sets the viewport to match the canvas dimensions
 
-    // Sfondo
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);                                           // pulisce il buffer di colore e profondità del framebuffer 
-    backgroundDrawer.draw(zenithColor, midColor, horizonColor, config.environment.horizonY);       // disegna lo sfondo (gradiente)
+    // background
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);     // clears the framebuffer's color and depth buffers 
+    backgroundDrawer.draw(zenithColor, midColor, horizonColor, config.environment.horizonY);       // draws the background (gradient)
 
-    // Camera
+    // camera
     const proj = Mat4.projection(Mat4.identity(), Math.PI/3, canvas.width/canvas.height, 0.1, 100);
     const view = camera.getViewMatrix(Mat4.identity());
 
-    // Attiva le la shadow map sulla TEXTURE UNIT 0 per renderla disponibile agli shader
+    // activates the shadow map on TEXTURE UNIT 0 to make it available to the shaders
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, shadowDepthTexture);
 
     const sunMatrix = Mat4.translate(Mat4.identity(), Mat4.identity(), sunPosition);
     const moonMatrix = Mat4.translate(Mat4.identity(), Mat4.identity(), moonPosition);
     
-    const dynamicObjects = [...sceneObjects];      // copia degli oggetti della pianta nella lista degli oggetti dinamici da disegnare
+    const dynamicObjects = [...sceneObjects];      // copies the plant objects into the list of dynamic objects to be drawn
 
-    // Disegna tutti gli oggetti nel framebuffer della scena
+    // draws all objects in the scene framebuffer
     for (const obj of dynamicObjects) {
       if (obj.description && obj.description.type === 'ground') {
         meshDrawer.draw(obj.meshHandle, {
@@ -2276,63 +2283,63 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
           u_shadowMap: 0
         });
       }
-      else { // logica rami, foglie e fiori
-        // Logica di visibilità del lifecycle della pianta
-        const age = currentTime - (obj.birthTime || currentTime); // età in ms
-        if (obj.description.type === 'leaf'   && age < (config.animation.leafStartTime   ?? 0)) continue;
-        if (obj.description.type === 'flower' && age < (config.animation.flowerStartTime ?? 0)) continue;
+      else { // logic for branches, leaves and flowers
+        // visibility logic of the plant's lifecycle
+        const age = currentTime - (obj.birthTime || currentTime); // age in ms
+        if (obj.description.type === 'leaf'   && age < (config.animation.leafStartTime   ?? 0)) continue;   // skips the leaf if it hasn't reached its start time
+        if (obj.description.type === 'flower' && age < (config.animation.flowerStartTime ?? 0)) continue;   // skips the flower if it hasn't reached its start time
     
-        // Variabili di default per gli oggetti "adulti"
+        // default variables for "adult" objects
         let finalAlpha = 1.0;
-        let finalColor = obj.color;
-        let finalModelMatrix = obj.modelMatrix; // default
+        let finalColor = obj.color;                  // sets the default color to the object's base color
+        let finalModelMatrix = obj.modelMatrix;      // default matrix is the one calculated by the L-System
     
-        // Applica effetti di gioventù solo a rami/foglie (NON ai fiori: evitano schiacciamenti)
-        // Evidenziazione iniziale (sia rami che foglie)
+        // applies youth effects only to branches/leaves (NOT to flowers: avoids squashing)
+        // initial highlight (both branches and leaves)
         if ((obj.description.type === 'branch' || obj.description.type === 'leaf') &&
             age < config.animation.highlightDuration) {
         
-          const highlightRatio = age / config.animation.highlightDuration;
-          const intensity = 1.5 - 0.5 * highlightRatio;
-          finalColor = obj.color.map(c => Math.min(1.0, c * intensity));
-          finalAlpha = 0.5 + 0.5 * highlightRatio;
+          const highlightRatio = age / config.animation.highlightDuration;             // calculates the progress of the highlight animation
+          const intensity = 1.5 - 0.5 * highlightRatio;                                // interpolates the color intensity from 1.5 down to 1.0
+          finalColor = obj.color.map(c => Math.min(1.0, c * intensity));               // applies the intensity to the color, clamping at 1.0
+          finalAlpha = 0.5 + 0.5 * highlightRatio;                                     // interpolates the alpha from 0.5 up to 1.0
         }
         
-        // Crescita: rami e foglie con ancoraggi diversi
-        if (obj.description.type === 'branch' && age < config.animation.growthDuration) {
-          // Ramo: geometry centrata -> usa halfHeight=0.5
-          const scaleY = Math.min(1.0, age / config.animation.growthDuration);
-          const halfHeight = 0.5;
-          const moveToTipMatrix = Mat4.translate(Mat4.identity(), Mat4.identity(), [0, halfHeight, 0]);
-          const scaleMatrix     = Mat4.scale    (Mat4.identity(), Mat4.identity(), [1, scaleY, 1]);
-          const moveBackMatrix  = Mat4.translate(Mat4.identity(), Mat4.identity(), [0,-halfHeight, 0]);
-          const growthTransform = Mat4.multiply(
-            Mat4.identity(),
-            moveBackMatrix,
-            Mat4.multiply(Mat4.identity(), scaleMatrix, moveToTipMatrix)
+        // growth: branches and leaves with different anchors
+        if (obj.description.type === 'branch' && age < config.animation.growthDuration) { // checks if the object is a branch and is still growing
+          // branch: centered geometry -> use halfHeight=0.5
+          const scaleY = Math.min(1.0, age / config.animation.growthDuration);                            // calculates the growth scale factor
+          const halfHeight = 0.5;                                                                         // half the height of the base cylinder
+          const moveToTipMatrix = Mat4.translate(Mat4.identity(), Mat4.identity(), [0, halfHeight, 0]);   // creates a matrix to move the pivot to the tip
+          const scaleMatrix     = Mat4.scale    (Mat4.identity(), Mat4.identity(), [1, scaleY, 1]);       // creates a matrix for the scaling animation
+          const moveBackMatrix  = Mat4.translate(Mat4.identity(), Mat4.identity(), [0,-halfHeight, 0]);   // creates a matrix to move the pivot back
+          const growthTransform = Mat4.multiply(                                                          // combines the transformations
+            Mat4.identity(),                                                                              // the output matrix
+            moveBackMatrix,                                                                               // applies the move back transformation last
+            Mat4.multiply(Mat4.identity(), scaleMatrix, moveToTipMatrix)                                  // applies scale, then move to tip first
           );
-          finalModelMatrix = Mat4.multiply(Mat4.identity(), obj.modelMatrix, growthTransform);
+          finalModelMatrix = Mat4.multiply(Mat4.identity(), obj.modelMatrix, growthTransform);            // applies the final growth transform to the object's model matrix
         }
         
-        if (obj.description.type === 'leaf' && age < config.animation.growthDuration) {
-          // Foglia: pivot sullo stelo alla base -> scala direttamente, nessun halfHeight
-          const scaleY = Math.min(1.0, age / config.animation.growthDuration);
-          const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [1, scaleY, 1]);
-          finalModelMatrix = Mat4.multiply(Mat4.identity(), obj.modelMatrix, scaleMatrix);
+        if (obj.description.type === 'leaf' && age < config.animation.growthDuration) {                   // checks if the object is a leaf and is still growing
+          // leaf: pivot on the stem at the base -> scale directly, no halfHeight
+          const scaleY = Math.min(1.0, age / config.animation.growthDuration);                            // calculates the growth scale factor
+          const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [1, scaleY, 1]);               // creates a matrix for direct scaling
+          finalModelMatrix = Mat4.multiply(Mat4.identity(), obj.modelMatrix, scaleMatrix);                // applies the growth transform to the object's model matrix
         }
     
         if (obj.description.type === 'flower') {
-          const flowerScale = 0.8; // Rimpicciolisci il fiore
-          const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [flowerScale, flowerScale, flowerScale]);
-          finalModelMatrix = Mat4.multiply(Mat4.identity(), finalModelMatrix, scaleMatrix);
+          const flowerScale = 0.8;
+          const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [flowerScale, flowerScale, flowerScale]);   // creates a uniform scaling matrix
+          finalModelMatrix = Mat4.multiply(Mat4.identity(), finalModelMatrix, scaleMatrix);                            // applies the scaling to the final model matrix
         }
     
-        const drawer = obj.drawer || meshDrawer;
-        const material = obj.material || branchMaterial;
-        const specularColor = material.specular || [0.1, 0.1, 0.1];
-        const shininess = material.shininess !== undefined ? material.shininess : 32.0;
+        const drawer = obj.drawer || meshDrawer;                                              // selects the appropriate drawer, falling back to the default meshDrawer
+        const material = obj.material || branchMaterial;                                      // selects the appropriate material, falling back to the branch material
+        const specularColor = material.specular || [0.1, 0.1, 0.1];                           // gets the specular color, with a fallback
+        const shininess = material.shininess !== undefined ? material.shininess : 32.0;       // gets the shininess value, with a fallback
     
-        // Uniform comuni
+        // common uniforms
         let uniforms = {
           u_model: finalModelMatrix,
           u_view: view,
@@ -2342,290 +2349,287 @@ window.addEventListener("load", async () => {  // ensures the code runs only aft
           u_lightColor: lightColor,
           u_lightIntensity: lightIntensity,
           u_viewPosition: cameraPosition,
-          u_lightSpaceMatrix: lightSpaceMatrix,
-          u_shadowMap: 0,
+          u_lightSpaceMatrix: lightSpaceMatrix,        // matrix for shadow mapping
+          u_shadowMap: 0,                              // tells the shader to use texture unit 0 for the shadow map
           u_specularColor: specularColor,
           u_shininess: shininess
         };
     
-        // Uniform specifici per drawer
-        if (drawer === texturedDrawer) {
-          if (obj.texture) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, obj.texture);
-            uniforms.u_diffuseTexture = 1; // unit 1
-            uniforms.u_tintColor = [1,1,1];
+        // specific uniforms for drawer type
+        if (drawer === texturedDrawer) {                    // checks if the object should be drawn with the textured shader
+          if (obj.texture) {                                // checks if the object has a texture
+            gl.activeTexture(gl.TEXTURE1);                  // activates texture unit 1
+            gl.bindTexture(gl.TEXTURE_2D, obj.texture);     // binds the object's texture
+            uniforms.u_diffuseTexture = 1;                  // tells the shader to use texture unit 1
+            uniforms.u_tintColor = [1,1,1];                 // sets a neutral tint color (no color change)
           }
         } 
-        else {
-          uniforms.u_diffuseColor = finalColor;
+        else { // for non-textured objects
+          uniforms.u_diffuseColor = finalColor;             // sets the calculated diffuse color
         }
 
-        if (config.environment.isDead && deadOverlay && uniforms.u_diffuseColor) {
-          uniforms.u_diffuseColor = [
+        if (config.environment.isDead && deadOverlay && uniforms.u_diffuseColor) {      // checks if the plant is dead and an overlay color is set
+          uniforms.u_diffuseColor = [                                                   // modulates the diffuse color with the overlay
             uniforms.u_diffuseColor[0] * deadOverlay[0],
             uniforms.u_diffuseColor[1] * deadOverlay[1],
             uniforms.u_diffuseColor[2] * deadOverlay[2],
           ];
-          uniforms.u_alpha *= deadOverlay[3];
+          uniforms.u_alpha *= deadOverlay[3];                                           // modulates the alpha with the overlay
         }
     
-        // --- FIORI ANIMATI: parte per parte con ritardo + rewind notturno ---
-        if (obj.description && obj.description.type === 'flower' && Array.isArray(obj.meshParts) && flowerGLTF && flowerGLTF.animator) {
-          // ---- Stato per-fiore con delay e dayRange per evitare ri-trigger globali ----
-          const animLen = flowerGLTF.animationDuration || 2.0;
-          const extraD = (FLOWER_ANIM?.extraStartDelayMs != null) ? FLOWER_ANIM.extraStartDelayMs : 2000;
-          const speed = (FLOWER_ANIM?.speed != null) ? FLOWER_ANIM.speed : 1.0;
+        // ANIMATED FLOWERS: part by part with delay + nightly rewind
+        if (obj.description && obj.description.type === 'flower' && Array.isArray(obj.meshParts) && flowerGLTF && flowerGLTF.animator) { // checks if the object is a valid, animatable flower
+          // per-flower state with delay and dayRange to avoid global re-triggers
+          const animLen = flowerGLTF.animationDuration || 2.0;                                                   // gets the animation length, with a fallback
+          const extraD = (FLOWER_ANIM?.extraStartDelayMs != null) ? FLOWER_ANIM.extraStartDelayMs : 2000;        // gets the extra delay for animation start
+          const speed = (FLOWER_ANIM?.speed != null) ? FLOWER_ANIM.speed : 1.0;                                  // gets the animation speed multiplier
         
-          const objDelay  = (obj.animDelayMs != null) ? obj.animDelayMs : 0;          // per-ﬁore
-          const baseStart = (config.animation.flowerStartTime ?? 0) + extraD + objDelay;
-          const ageMs     = currentTime - (obj.birthTime ?? 0);
+          const objDelay  = (obj.animDelayMs != null) ? obj.animDelayMs : 0;                                     // per-flower delay
+          const baseStart = (config.animation.flowerStartTime ?? 0) + extraD + objDelay;                         // calculates the absolute start time for the animation
+          const ageMs     = currentTime - (obj.birthTime ?? 0);                                                  // calculates the object's age in milliseconds
           
-          // Finestra per-ﬁore: se mancante, fallback a globale
-          const fallbackDR = FLOWER_ANIM?.dayRange ?? [0.25, 0.75];
-          const activeRange= (obj.dayRange && obj.dayRange.length === 2) ? obj.dayRange : fallbackDR;
+          // per-flower window: if missing, fallback to global
+          const fallbackDR = FLOWER_ANIM?.dayRange ?? [0.25, 0.75];                                              // gets the day range for animation, with a fallback
+          const activeRange= (obj.dayRange && obj.dayRange.length === 2) ? obj.dayRange : fallbackDR;            // determines the active range for this specific flower
           
-          // Stato giorno/notte per-ﬁore
-          const tDay  = (config.environment.timeOfDay !== undefined)
+          // per-flower day/night state
+          const tDay  = (config.environment.timeOfDay !== undefined)                                             // gets the current time of day
                          ? config.environment.timeOfDay
                          : (config.environment.dayTime !== undefined ? config.environment.dayTime : 0.5);
-          const isDay = (tDay >= activeRange[0] && tDay <= activeRange[1]);
+          const isDay = (tDay >= activeRange[0] && tDay <= activeRange[1]);                                      // determines if it is currently "day" for this flower
 
-          // diventa "ready" solo quando ha raggiunto il suo istante di start
-          const becameReady = (!obj._startReady) && (ageMs >= baseStart);
+          // becomes "ready" only when it has reached its start time
+          const becameReady = (!obj._startReady) && (ageMs >= baseStart);                                        // checks if the flower just became ready to animate
           if (becameReady) {
-            obj._startReady = true;
-            // parte UNA volta in base allo stato attuale del giorno/notte
-            if (isDay) { 
-              obj.animPhase = "opening";
-              obj.animTime = 0; 
+            obj._startReady = true;                                                                              // sets its ready flag
+            // starts ONCE based on the current day/night state
+            if (isDay) {
+              obj.animPhase = "opening";                                                                         // starts opening
+              obj.animTime = 0;                                                                                  // from the beginning of the animation
             }
-            else { 
-              obj.animPhase = "closing"; 
-              obj.animTime = animLen; 
+            else { //night
+              obj.animPhase = "closing";                                                                         // starts closing
+              obj.animTime = animLen;                                                                            // from the end of the animation
             }
-            obj._lastIsDay = isDay;
+            obj._lastIsDay = isDay;                                                                              // records the current day/night state
           }
         
-          // Cambi di giorno/notte dopo lo start -> una sola transizione
-          if (obj._startReady) {
-            if (obj._lastIsDay === null) obj._lastIsDay = isDay;
-            if (isDay !== obj._lastIsDay) {
-              if (isDay && obj.animPhase !== "opening" && obj.animPhase !== "open") {
-                obj.animPhase = "opening";                // apri una volta
-                // (lasciamo animTime dov’è, di solito 0 se era chiuso)
-              } else if (!isDay && obj.animPhase !== "closing" && obj.animPhase !== "closed") {
-                obj.animPhase = "closing";                // chiudi una volta
-                // (lasciamo animTime dov’è, di solito animLen se era aperto)
+          // day/night changes after the start -> a single transition
+          if (obj._startReady) {                                                                                 // if the flower is ready to animate
+            if (obj._lastIsDay === null) obj._lastIsDay = isDay;                                                 // initializes the last day state if needed
+            if (isDay !== obj._lastIsDay) {                                                                      // checks if the day/night state has changed
+              if (isDay && obj.animPhase !== "opening" && obj.animPhase !== "open") {                            // if it's now day and the flower isn't already opening/open
+                obj.animPhase = "opening";
+              } 
+              else if (!isDay && obj.animPhase !== "closing" && obj.animPhase !== "closed") {                    // if it's now night and the flower isn't already closing/closed
+                obj.animPhase = "closing";
               }
-              obj._lastIsDay = isDay;
+              obj._lastIsDay = isDay;                                                                            // updates the last seen day/night state
             }
         
-            // avanzamento
+            // progress
             if (obj.animPhase === "opening") {
-              obj.animTime += (deltaTime/1000) * speed;
-              if (obj.animTime >= animLen) { obj.animTime = animLen; obj.animPhase = "open"; }
-            } else if (obj.animPhase === "closing") {
-              obj.animTime -= (deltaTime/1000) * speed;
-              if (obj.animTime <= 0) { obj.animTime = 0; obj.animPhase = "closed"; }
+              obj.animTime += (deltaTime/1000) * speed;                                                          // advances the animation time
+              if (obj.animTime >= animLen) { obj.animTime = animLen; obj.animPhase = "open"; }                   // checks if the animation is finished
+            } 
+            else if (obj.animPhase === "closing") {
+              obj.animTime -= (deltaTime/1000) * speed;                                                          // rewinds the animation time
+              if (obj.animTime <= 0) { obj.animTime = 0; obj.animPhase = "closed"; }                             // checks if the animation is finished
             }
           }
         
-          // Tempo da passare all’animator:
-          // - se non è ancora "ready", resta in posa iniziale (t=0)
-          // - altrimenti clamp tra [0, animLen)
-          const EPS  = 1e-5;
-          const tsec = obj._startReady ? Math.max(0, Math.min(obj.animTime, Math.max(0, animLen - EPS))) : 0;
+          // time to pass to the animator:
+          // - if not yet "ready", stay in the initial pose (t = 0)
+          // - otherwise clamp between [0, animLen)
+          const EPS  = 1e-5;                                        // a small epsilon to avoid floating point issues at the end of the animation
+          const tsec = obj._startReady ? Math.max(0, Math.min(obj.animTime, Math.max(0, animLen - EPS))) : 0;    // calculates the final clamped animation time in seconds
         
-          const finalModelMatrixForFlower = finalModelMatrix;
+          const finalModelMatrixForFlower = finalModelMatrix;                                                    // gets the base matrix for the flower
           for (const part of obj.meshParts) {
-            const localAnimated =
-              flowerGLTF.animator.getNodeWorldAt(tsec, part.nodeIndex) ||
-              part.localMatrix || Mat4.identity();
+            const localAnimated =                                                                                // gets the animated local matrix for this part
+              flowerGLTF.animator.getNodeWorldAt(tsec, part.nodeIndex) ||                                        // from the animator
+              part.localMatrix || Mat4.identity();                                                               // or falls back to its static local matrix
         
-            const model = Mat4.multiply(Mat4.identity(), finalModelMatrixForFlower, localAnimated);
-            uniforms.u_model = model;
+            const model = Mat4.multiply(Mat4.identity(), finalModelMatrixForFlower, localAnimated);              // calculates the final world matrix for this part
+            uniforms.u_model = model;                                                                            // updates the model uniform for this part's draw call
         
-            const partDrawer = part.drawer || meshDrawer;
-            if (partDrawer === texturedDrawer && part.texture) {
-              gl.activeTexture(gl.TEXTURE1);
-              gl.bindTexture(gl.TEXTURE_2D, part.texture);
-              uniforms.u_diffuseTexture = 1;
-              uniforms.u_tintColor = [1, 1, 1];
-              partDrawer.draw(part.handle || part.meshHandle, uniforms);
-            } else {
-              const bc = (part.material && part.material.baseColorFactor) ? part.material.baseColorFactor : [1.0, 0.4, 0.6, 1.0];
-              uniforms.u_diffuseColor = [bc[0], bc[1], bc[2]];
-              meshDrawer.draw(part.handle || part.meshHandle, uniforms);
+            const partDrawer = part.drawer || meshDrawer;                                                        // selects the drawer for this part
+            if (partDrawer === texturedDrawer && part.texture) {                                                 // if the part is textured
+              gl.activeTexture(gl.TEXTURE1);                                                                     // activates texture unit 1
+              gl.bindTexture(gl.TEXTURE_2D, part.texture);                                                       // binds the part's texture
+              uniforms.u_diffuseTexture = 1;                                                                     // sets the texture uniform
+              uniforms.u_tintColor = [1, 1, 1];                                                                  // sets a neutral tint
+              partDrawer.draw(part.handle, uniforms);                                                            // draws the textured part
+            } 
+            else { // if the part is not textured
+              const bc = (part.material && part.material.baseColorFactor) ? part.material.baseColorFactor : [1.0, 0.4, 0.6, 1.0];   // gets the color from the material or a fallback
+              uniforms.u_diffuseColor = [bc[0], bc[1], bc[2]];                                                                      // sets the diffuse color uniform
+              meshDrawer.draw(part.handle, uniforms);                                                                               // draws the part with a solid color
             }
           }
         
         } 
-        else {
-          // Oggetti non-fiore o fiore senza animator -> standard
+        else { // if the object is not an animatable flower
+          // non-flower objects or flower without animator -> standard drawing
           drawer.draw(obj.meshHandle, uniforms, gl.TRIANGLES);
         }
       }
     }
 
-    // Disegna il sole, se è visibile
+    const isAboveGround = (cameraPosition[1] > config.environment.plantBaseY + 0.01);
+
+    // Add sun and sun ruys only if above the horizon (Y > plantBaseY)
     if (sunPosition[1] > config.environment.plantBaseY) {
-      // Applica la scala aggiuntiva specifica per il sole
-      const sunScaleFactor = 1.7;
-      const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [sunScaleFactor, sunScaleFactor, sunScaleFactor]);
+      const sunScaleFactor = 1.7;                                                                                              // the sun will be 1.7 times larger than the moon
+      const scaleMatrix = Mat4.scale(Mat4.identity(), Mat4.identity(), [sunScaleFactor, sunScaleFactor, sunScaleFactor]);      // creates a uniform scaling matrix
       const finalSunMatrix = Mat4.multiply(Mat4.identity(), sunMatrix, scaleMatrix);
 
-      // Calcola le matrici di rendering
-      let modelView = Mat4.multiply(Mat4.identity(), view, finalSunMatrix);
-      let mvp = Mat4.multiply(Mat4.identity(), proj, modelView);
-      
-      // Disegna
+      // rendering matrices
+      let modelView = Mat4.multiply(Mat4.identity(), view, finalSunMatrix);                                                    // calculates the model-view matrix for the sun
+      let mvp = Mat4.multiply(Mat4.identity(), proj, modelView);                                                               // calculates the final model-view-projection matrix
+
       sunMoonDrawer.draw(sunMoonMeshHandle, {
         u_mvp: mvp,
-        u_color: [1.0, 1.0, 0.7] // Colore del sole
+        u_color: [1.0, 1.0, 0.7]
       });
-      if (config.weather.showSunRays) {
-        // clip = VP * sunW  (colonna-major)
-        const sunWorldPos = [sunPosition[0], sunPosition[1], sunPosition[2], 1.0];
 
-        // VP = P * V
+      if (config.weather.showSunRays && isAboveGround) {                                                               // checks if the sun rays effect should be shown
+        // clip = VP * sunW  (column-major)
+        const sunWorldPos = [sunPosition[0], sunPosition[1], sunPosition[2], 1.0];                                     // defines the sun's position in homogeneous coordinates (w=1)
+
+        // view-projection matrix VP = P * V
         const VP = Mat4.multiply(Mat4.identity(), proj, view);
       
-        // Moltiplicazione VP * sunWorldPos (colonna-major)
-        const clipX = VP[0]*sunWorldPos[0] + VP[4]*sunWorldPos[1] + VP[8]*sunWorldPos[2]  + VP[12]*sunWorldPos[3];
-        const clipY = VP[1]*sunWorldPos[0] + VP[5]*sunWorldPos[1] + VP[9]*sunWorldPos[2]  + VP[13]*sunWorldPos[3];
-        const clipW = VP[3]*sunWorldPos[0] + VP[7]*sunWorldPos[1] + VP[11]*sunWorldPos[2] + VP[15]*sunWorldPos[3];
+        // VP * sunWorldPos multiplication (column-major)
+        const clipX = VP[0]*sunWorldPos[0] + VP[4]*sunWorldPos[1] + VP[8]*sunWorldPos[2]  + VP[12]*sunWorldPos[3];     // calculates the x coordinate in clip space
+        const clipY = VP[1]*sunWorldPos[0] + VP[5]*sunWorldPos[1] + VP[9]*sunWorldPos[2]  + VP[13]*sunWorldPos[3];     // calculates the y coordinate in clip space
+        const clipW = VP[3]*sunWorldPos[0] + VP[7]*sunWorldPos[1] + VP[11]*sunWorldPos[2] + VP[15]*sunWorldPos[3];     // calculates the w component for perspective division
       
-        if (clipW > 0.0) { // Sole davanti alla camera
-          // Da clip a NDC (-1..1)
-          const ndcX = clipX / clipW;
-          const ndcY = clipY / clipW;
-          // Da NDC a [0..1] con Y invertita
-          const sunPos = [ ndcX * 0.5 + 0.5, ndcY * 0.5 + 0.5 ];
+        if (clipW > 0.0) {                                                                                             // if clipW > 0.0, the sun is in front of the camera
+          // from clip space to Normalized Device Coordinates (-1 to 1)
+          const ndcX = clipX / clipW;                                                                                  // performs the perspective divide for x
+          const ndcY = clipY / clipW;                                                                                  // performs the perspective divide for y
+          // from Normalized Device Coordinates to screen space [0..1] with inverted Y
+          const sunPos = [ ndcX * 0.5 + 0.5, ndcY * 0.5 + 0.5 ];                                                       // converts NDC to the [0,1] range expected by the shader
   
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-          gl.disable(gl.DEPTH_TEST);
-          sunRaysDrawer.draw(sunRaysMeshHandle, {
-            u_sunPos: sunPos,                       // già calcolato [0..1]
+          gl.enable(gl.BLEND);                                                                                         // enables blending for transparency
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);                                                          // sets the standard alpha blending function
+          sunRaysDrawer.draw(sunRaysMeshHandle, {                                                                      // draws the sun rays effect
+            u_sunPos: sunPos,
             u_time: currentTime / 1000.0,
             u_color: [1.0, 0.95, 0.7],
-            u_intensity: 0.6 * Math.max(0.0, Math.min(1.0, lightIntensity)), // più trasparente
-            u_aspect: canvas.width / canvas.height
+            u_intensity: 0.6 * Math.max(0.0, Math.min(1.0, lightIntensity)),                                           // modulates intensity to make the rays more transparent
+            u_aspect: canvas.width / canvas.height                                                                     // passes the screen aspect ratio to correct distortion
           }, gl.TRIANGLES);
   
-          gl.enable(gl.DEPTH_TEST);
-          gl.disable(gl.BLEND);
+          gl.disable(gl.BLEND);                                                                                        // disables blending for cleanup
         }
       }
     }
 
-    // Disegna la Luna, se è visibile
+    // Add moon only if above the horizon (Y > plantBaseY)
     if (moonPosition[1] > config.environment.plantBaseY) {
-      // Nessuna scala aggiuntiva per la luna, usa direttamente moonMatrix
       let modelView = Mat4.multiply(Mat4.identity(), view, moonMatrix);
       let mvp = Mat4.multiply(Mat4.identity(), proj, modelView);
 
-      // Disegna
       sunMoonDrawer.draw(sunMoonMeshHandle, {
         u_mvp: mvp,
-        u_color: [0.9, 0.9, 1.0] // Colore della luna
+        u_color: [0.9, 0.9, 1.0]
       });
     }
 
-    // Disegna stelle e lucciole solo se è notte
-    if (0.75 < config.environment.dayTime && config.environment.dayTime < 0.99) {
-      let fireflyModelMatrix = Mat4.identity();
-      let starMatrix = Mat4.clone(view);
-      starMatrix[12] = 0; starMatrix[13] = 0; starMatrix[14] = 0;
-      // Spostiamo le lucciole all'altezza della base della pianta, più un piccolo offset per farle fluttuare sopra il terreno.
-      Mat4.translate(fireflyModelMatrix, fireflyModelMatrix, [0, config.environment.plantBaseY + 4.0, 0]);
-      let firefliesModelView = Mat4.multiply(Mat4.identity(), view, fireflyModelMatrix);
-      let firefliesMVP = Mat4.multiply(Mat4.identity(), proj, firefliesModelView);
-      let starsMVP = Mat4.multiply(Mat4.identity(), proj, starMatrix);
+    // Draw stars and fireflies only at night
+    if (isAboveGround && 0.75 < config.environment.dayTime && config.environment.dayTime < 0.99) {
+      let fireflyModelMatrix = Mat4.identity();                                // initializes the model matrix for the fireflies
+      let starMatrix = Mat4.clone(view);                                       // clones the view matrix to make the stars follow the camera's rotation
+      starMatrix[12] = 0; starMatrix[13] = 0; starMatrix[14] = 0;              // zeroes out the translation components of the star matrix
+      // we move the fireflies to the height of the plant's base, plus a small offset to make them float above the ground
+      Mat4.translate(fireflyModelMatrix, fireflyModelMatrix, [0, config.environment.plantBaseY + 4.0, 0]);         // applies the translation to the firefly model matrix
+      let firefliesModelView = Mat4.multiply(Mat4.identity(), view, fireflyModelMatrix);                           // calculates the model-view matrix for the fireflies
+      let firefliesMVP = Mat4.multiply(Mat4.identity(), proj, firefliesModelView);                                 // calculates the final MVP matrix for the fireflies
+      let starsMVP = Mat4.multiply(Mat4.identity(), proj, starMatrix);                                             // calculates the final MVP matrix for the stars
 
-      const timeInSeconds = currentTime / 1000.0;
-      const twinkle = Math.sin(timeInSeconds * 2.0) * 0.1 + 0.9; // Varia tra 0.8 e 1.0
-      const starColor = [twinkle, twinkle, twinkle];
+      const timeInSeconds = currentTime / 1000.0;                                                                  // converts the current time to seconds for animations
+      const twinkle = Math.sin(timeInSeconds * 2.0) * 0.1 + 0.9;                                                   // varies between 0.8 and 1.0
+      const starColor = [twinkle, twinkle, twinkle];                                                               // creates a pulsating white/grey color for the stars
 
-      // Lucciole -> più gialle e più grandi
-      gl.disable(gl.DEPTH_TEST);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      fireflyDrawer.draw(fireflyMeshHandle, {
+      // fireflies
+      gl.depthMask(false);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);  
+      fireflyDrawer.draw(fireflyMeshHandle, {                                                                      // draws the fireflies with their specific uniforms
         u_mvp: firefliesMVP,
         u_time: timeInSeconds,
-        u_color: [1.0, 0.85, 0.2]   // giallo acceso
-      }, gl.POINTS);
+        u_color: [1.0, 0.85, 0.2]   // bright yellow
+      }, gl.POINTS); // specifies to draw them as points
       
-      // Stelle -> bianche, con glow
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      starDrawer.draw(starMeshHandle, {
+      // stars with glow
+      starDrawer.draw(starMeshHandle, {                                                                            // draws the stars with their specific uniforms
         u_mvp: starsMVP,
         u_color: starColor
       });
       
-      gl.enable(gl.DEPTH_TEST);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); // ripristino
+      gl.depthMask(true);                                                                                         // enables writing to the depth buffer
+      gl.disable(gl.BLEND);
     }
 
-    // Disegna la pioggia se attiva
+    // Draw the rain if active
     if (config.weather.isRaining) {
-      config.environment.wasWateredToday = true; // logica watering
-
-      let rainModelMatrix = Mat4.identity();
-      let modelView = Mat4.multiply(Mat4.identity(), view, rainModelMatrix);
+      config.environment.wasWateredToday = true;                                      // watering logic
+    
+      let rainModelMatrix = Mat4.identity(); 
+      let modelView = Matá.multiply(Mat4.identity(), view, rainModelMatrix);
       let mvp = Mat4.multiply(Mat4.identity(), proj, modelView);
 
-      const timeInSeconds = currentTime / 1000.0;
+      const timeInSeconds = currentTime / 1000.0;                                     // converts the current time to seconds for animations
 
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-      gl.depthMask(false);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);                                             // sets additive blending for a bright, semi-transparent effect
+      gl.depthMask(false);                                                            // disables writing to the depth buffer to avoid sorting issues with transparent particles
 
-      const rainTop = 20.0;
-      const rainBottom = -8.0;
+      const rainTop = 20.0;                                                           // defines the top y-coordinate from which the rain falls
+      const rainBottom = -8.0;                                                        // defines the bottom y-coordinate where the rain disappears
 
-      rainDrawer.draw(rainMeshHandle, {
+      rainDrawer.draw(rainMeshHandle, {                                               // draws the rain particles
         u_mvp: mvp,
         u_proj: proj,
         u_time: timeInSeconds,
-        u_color: [0.7, 0.8, 0.9],
+        u_color: [0.7, 0.8, 0.9],                                                     //  blueish-white color 
         u_rainTop: rainTop,
         u_rainBottom: rainBottom
-      }, gl.POINTS);
+      }, gl.POINTS);                                                                  // specifies to draw them as points
           
-      gl.depthMask(true);
-      gl.disable(gl.BLEND);
+      gl.depthMask(true);                                                             // re-enables writing to the depth buffer
+      gl.disable(gl.BLEND);                                                           // disables blending for cleanup
     }
 
-    // Disegna le nuvole se attive
+    // Draw clouds if they are active
     if (config.weather.showClouds) {
       let cloudModelMatrix = Mat4.identity();
-      Mat4.translate(cloudModelMatrix, cloudModelMatrix, [0, 12, 0]);
+      Mat4.translate(cloudModelMatrix, cloudModelMatrix, [0, 12, 0]);                 // translates the clouds to be high up in the sky
       
-      const timeInSeconds = currentTime / 1000.0
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.depthMask(false)
-      cloudDrawer.draw(cloudMeshHandle, {
+      const timeInSeconds = currentTime / 1000.0;                                     // converts the current time to seconds for animation
+      gl.enable(gl.BLEND);                                                            // enables blending for the semi-transparent clouds
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);                             // sets the standard alpha blending function
+      gl.depthMask(false);                                                            // disables writing to the depth buffer for correct transparency sorting
+      cloudDrawer.draw(cloudMeshHandle, {                                             // draws the clouds
         u_model: cloudModelMatrix,
         u_view: view,
         u_proj: proj,
-        u_time: timeInSeconds
-      }, gl.TRIANGLES);
+        u_time: timeInSeconds                                                         // passes the current time to animate the cloud noise
+      }, gl.TRIANGLES);                                                               // specifies to draw them as triangles
       
-      gl.depthMask(true);
-      gl.disable(gl.BLEND);
-      }
+      gl.depthMask(true);                                                             // re-enables writing to the depth buffer for the rest of the scene
+      gl.disable(gl.BLEND);                                                           // disables blending for cleanup
+    }
 
-
-    // Ripristina il viewport a schermo intero per il prossimo frame
+    // Restore the viewport to full screen for the next frame
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    requestAnimationFrame(render);                     // richiede al browser di chiamare di nuovo 'render' al prossimo frame disponibile
+    requestAnimationFrame(render);                     // asks the browser to call 'render' again on the next available frame
   }
   
-  // AVVIO DELL'APPLICAZIONE
-  await initBaseGeometries();     // carica le geometrie
-  buildLSystem();                 // costruisce la scena iniziale
-  requestAnimationFrame(render);  // chiama la funzione render (vedi riga 505) per avviare il loop di rendering
+  // LAUNCHING THE APPLICATION
+  await initBaseGeometries();     // load geometries
+  buildLSystem();                 // calls the buildLSystem functions (see line 1881) to construct the initial scene
+  requestAnimationFrame(render);  // calls the render function (see line 1989) to start the rendering loop
 });
